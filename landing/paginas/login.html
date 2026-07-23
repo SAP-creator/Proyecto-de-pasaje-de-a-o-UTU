@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nombre — Iniciar sesión</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+  <div class="auth-page">
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        <span style="color:#facc15">N</span><span style="color:#5ae87a">o</span><span style="color:#60c8ff">m</span><span style="color:#fa8c5a">b</span><span style="color:#c084fc">r</span><span style="color:#5ae87a">e</span>
+      </div>
+
+      <!-- Tabs Iniciar sesión / Registrarse -->
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Iniciar sesión</div>
+        <div class="auth-tab" id="tab-register" onclick="switchTab('register')">Registrarse</div>
+      </div>
+
+      <!-- Formulario Login -->
+      <div id="form-login">
+        <form class="auth-form" onsubmit="handleLogin(event)">
+          <label>
+            Email
+            <input type="email" placeholder="tu@email.com" required>
+          </label>
+          <label>
+            Contraseña
+            <input type="password" placeholder="••••••••" required>
+          </label>
+          <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+        <p class="auth-sep" style="margin-top:16px">
+          ¿No tenés cuenta? <span style="color:var(--green);cursor:pointer" onclick="switchTab('register')">Registrate</span>
+        </p>
+      </div>
+
+      <!-- Formulario Registro -->
+      <div id="form-register" style="display:none">
+        <form class="auth-form" onsubmit="handleLogin(event)">
+          <label>
+            Nombre completo
+            <input type="text" placeholder="Juan Pérez" required>
+          </label>
+          <label>
+            Email
+            <input type="email" placeholder="tu@email.com" required>
+          </label>
+          <label>
+            Contraseña
+            <input type="password" placeholder="••••••••" required>
+          </label>
+          <label>
+            Repetir contraseña
+            <input type="password" placeholder="••••••••" required>
+          </label>
+          <button type="submit" class="btn-primary">Crear cuenta</button>
+        </form>
+        <p class="auth-sep" style="margin-top:16px">
+          ¿Ya tenés cuenta? <span style="color:var(--green);cursor:pointer" onclick="switchTab('login')">Iniciá sesión</span>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+      document.getElementById('form-login').style.display    = tab === 'login'    ? 'block' : 'none';
+      document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>
