@@ -1,0 +1,82 @@
+[
+  {
+    "info_general": {
+      "1": "Cada petición se realiza sobre una ruta (endpoint). Los datos necesarios se envían en el cuerpo de la petición en formato JSON cuando el método HTTP lo requiera.",
+      "2": "Todos los \"/user/tipo_usuario/...\" requieren siempre un token valido de usuario de este tipo usuario (Si no es el mismo tipo o el token no es valido envian una respuesta http 403."
+    }
+  },
+  {
+    "http_method": "POST",
+    "endpoints": {
+      "users/singin": {
+        "description": "Iniciar sesión en el sistema.",
+        "query_required": {
+          "TYPEUSER": "Tipo de usuario (vecino, municipal, camionero, root)",
+          "CI": "Cedula",
+          "PASSWORD": "Contraseña del usuario"
+        }
+      
+      },
+      "users/singup": {
+        "description": "Pedir solicitud de crear sesion en el sistema",
+        "query_required": {
+          "TYPEUSER": "Tipo de usuario (vecino, municipal, camionero, root)",
+          "CI": "Cedula",
+          "PASSWORD": "Contraseña del usuario"
+        }
+      },
+      "users/admin/aceptarsingup": {
+        "description": "Pedir solicitud de crear sesion en el sistema",
+        "query_required": {
+          "Token": "token valido de root",
+          "CI": "cedula del usuario a resgistrar"
+          
+        }
+      }
+    }
+  },
+  {
+    "http_method": "GET",
+    "endpoints": {
+      "users/admin/users/data": {
+        "description": "Obtener todos los usuarios registrados (retorna las cédulas con su tipo de usuario).",
+        "query_required": {
+          "Token": "token valido de root"
+        }
+      },
+      "users/admin/users/data/peticiones": {
+        "description": "Obtener todas las peticiones de usuarios (o sea el para crear un user)",
+        "query_required": {
+          "Token": "token valido de root"
+        }
+      },
+      "users/admin/users/exist": {
+        "description": "Verifica si existe un usuario",
+        "query_required": {
+          "Token root": "token valido de root",
+          "CEDULA": "Número de documento a consultar"
+        }
+      },
+      "users/admin/logs/users": {
+        "description": "Historial de acciones realizadas por los usuarios.",
+        "query_required": {
+          "Token root": "token valido de root"
+        }
+      },
+      "users/root/logs/sql": {
+        "description": "Historial de consultas directas a la base de datos SQL.",
+        "query_required": {
+          "Token root": "token valido de root"
+        }
+      }
+    }
+  },
+  {
+    "http_method": "PUT",
+    "endpoints": {}
+  },
+  {
+    "http_method": "DELETE",
+    "endpoints": {}
+  }
+]

@@ -1,0 +1,22 @@
+#detalle de comentarios:
+#!inicio de grupo
+#¡fin de un grupo
+#-subgrupo
+#comentario normal
+
+
+RewriteEngine On
+#NOTA: Cambiar cuando se cambie la ruta !!!
+RewriteBase /GIT/api/
+
+
+#!GRUPO API DE USUARIO.
+#-API POR TIPO
+RewriteRule ^users/admin(/.*)?$ apis/users_api/API_Admin.php [L,QSA]
+RewriteRule ^users/municipal(/.*)?$ apis/users_api/API_Municipal.php [L,QSA]
+RewriteRule ^users/camionero(/.*)?$ apis/users_api/API_Camionero.php [L,QSA]
+RewriteRule ^users/vecino(/.*)?$ apis/users_api/API_Vecino.php [L,QSA]
+
+#-API DEFAULT USUARIO
+RewriteRule ^users/?(.*)$ apis/users_api/API_DefaultUser.php [L,QSA]
+#¡
