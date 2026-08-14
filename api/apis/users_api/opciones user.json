@@ -25,7 +25,7 @@
           "PASSWORD": "Contraseña del usuario"
         }
       },
-      "users/admin/aceptarsingup": {
+      "users/SysAdmin/aceptarsingup": {
         "description": "Pedir solicitud de crear sesion en el sistema",
         "query_required": {
           "Token": "token valido de root",
@@ -38,26 +38,26 @@
   {
     "http_method": "GET",
     "endpoints": {
-      "users/admin/users/data": {
+      "users/SysAdmin/users/data": {
         "description": "Obtener todos los usuarios registrados (retorna las cédulas con su tipo de usuario).",
         "query_required": {
           "Token": "token valido de root"
         }
       },
-      "users/admin/users/data/peticiones": {
+      "users/SysAdmin/users/data/peticiones": {
         "description": "Obtener todas las peticiones de usuarios (o sea el para crear un user)",
         "query_required": {
           "Token": "token valido de root"
         }
       },
-      "users/admin/users/exist": {
+      "users/SysAdmin/users/exist": {
         "description": "Verifica si existe un usuario",
         "query_required": {
           "Token root": "token valido de root",
           "CEDULA": "Número de documento a consultar"
         }
       },
-      "users/admin/logs/users": {
+      "users/SysAdmin/logs/users": {
         "description": "Historial de acciones realizadas por los usuarios.",
         "query_required": {
           "Token root": "token valido de root"

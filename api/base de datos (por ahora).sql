@@ -25,15 +25,22 @@ Create Table vecino (
     cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES usuario (cedula)
 );
-Create Table admin (
+
+Create Table admin_sistemas (
     cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
 );
-Create Table camionero (
+
+Create Table operador (
     cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
 );
-Create Table municipal (
+
+Create Table admin_municipal_operador (
+    cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
+    FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
+);
+Create Table admin_municipal_general (
     cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
 );

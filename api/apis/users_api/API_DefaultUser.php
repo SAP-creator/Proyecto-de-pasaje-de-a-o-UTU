@@ -1,6 +1,8 @@
 <?php
 
-include_once __DIR__ . "/../../utils/resp http.php";
+include_once __DIR__ . "/../../utils/resp_http.php";
+
+include_once __DIR__ . "/../../constantes/rutas_constantes.php";
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -8,9 +10,7 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 
 $method = $_SERVER['REQUEST_METHOD'];
 $origina_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-#NOTA: MOFICAR PARA CUANDO SE CAMBIE EL NOMBRE DE LA RUTA!
-$path = str_replace('/GIT/api/users', '', $origina_path);
-#require_once "./API_DefaultUser.php";
+$path = str_replace(ruta_api_usuario, '', $origina_path);
 
 
 $data = json_decode(file_get_contents("php://input"), true);
@@ -47,9 +47,9 @@ function opciones_http(string $metodo,string $ruta,?array $datos){
 
 function opciones_post(string $opcion,array $datos):HttpResponse{
     switch ($opcion){
-        case "/signin":
+        case "/signIn":
             return HttpResponse::ok("por ahora nada");
-        case "/signup":
+        case "/signUp":
             return HttpResponse::ok("por ahora nada");
 
         default:

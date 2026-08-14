@@ -12,11 +12,11 @@ RewriteBase /GIT/api/
 
 #!GRUPO API DE USUARIO.
 #-API POR TIPO
-RewriteRule ^users/admin(/.*)?$ apis/users_api/API_Admin.php [L,QSA]
-RewriteRule ^users/municipal(/.*)?$ apis/users_api/API_Municipal.php [L,QSA]
-RewriteRule ^users/camionero(/.*)?$ apis/users_api/API_Camionero.php [L,QSA]
-RewriteRule ^users/vecino(/.*)?$ apis/users_api/API_Vecino.php [L,QSA]
+RewriteRule ^user/sysAdmin(/.*)?$ apis/users_api/API_SysAdmin.php [L,QSA]
+RewriteRule ^user/municipal(/.*)?$ apis/users_api/API_Municipal.php [L,QSA]
+RewriteRule ^user/camionero(/.*)?$ apis/users_api/API_Camionero.php [L,QSA]
+RewriteRule ^user/vecino(/.*)?$ apis/users_api/API_Vecino.php [L,QSA]
 
 #-API DEFAULT USUARIO
-RewriteRule ^users/?(.*)$ apis/users_api/API_DefaultUser.php [L,QSA]
+RewriteRule ^user/?(.*)$ apis/users_api/API_DefaultUser.php [L,QSA]
 #¡

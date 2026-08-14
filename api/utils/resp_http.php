@@ -1,5 +1,8 @@
 <?php 
 
+include_once __DIR__ . "/../constantes/json_constantes.php";
+
+
 const http_ok = 200;
 const http_create = 201;
 
@@ -22,19 +25,20 @@ class HttpResponse {
     }
 
     public static function ok(mixed ... $data): self {
-        return new self(200, json_encode($data));
+        $respuesta = 200;
+        #si no tiene respuesta, tiro un 204 (No content)
+        if (empty($data)) $respuesta = 204;
+        return new self($respuesta, json_encode($data));
     }
 
     public static function created(mixed ... $data ): self {
         return new self(201, json_encode($data));
     }
 
-    public static function noContent(): self {
-        return new self(204, "");
-    }
+
 
     public static function error(string $message = "Error", int $code = 400): self {
-        return new self($code, json_encode(["ERROR" => $message]));
+        return new self($code, json_encode([key_error => $message]));
     }
 
     public function send(): void {
