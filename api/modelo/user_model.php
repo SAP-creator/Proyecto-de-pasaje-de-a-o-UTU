@@ -1,7 +1,7 @@
 <?php
 
 
-class UserController{
+class UserModel{
 
     #-- retorna:
     #array - lo consiguio (aunque este vacio)

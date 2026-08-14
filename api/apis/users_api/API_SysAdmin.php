@@ -57,7 +57,7 @@ function opciones_POST(string $ruta,array $datos):HttpResponse{
 
     switch ($ruta){
 
-        case "/aceptarsingup":
+        case "/aceptarSignIn":
             return HttpResponse::ok("por ahora nada");
             break;
             
