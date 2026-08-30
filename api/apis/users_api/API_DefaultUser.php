@@ -54,13 +54,13 @@ function opciones_post(string $opcion, array $datos): HttpResponse {
         
         switch ($sign_op) {
             case "In":
-                VerifyDataController::keys_exists($datos,key_user);
+                VerifyDataController::keys_exists(true, $datos,key_user);
                 
 
                 return SignController::sign_in($datos);
                 break;
             case "Up":
-                VerifyDataController::keys_exists($datos,key_user);
+                VerifyDataController::keys_exists(true, $datos,key_user);
 
                 return SignController::sign_up($datos);
                 break;

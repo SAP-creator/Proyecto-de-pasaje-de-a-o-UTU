@@ -18,7 +18,7 @@ class SignController {
         $comp_user = $data[key_user];
 
         // Validar que existan las keys requeridas
-        VerifyDataController::keys_exists($comp_user, key_ci, key_password);
+        VerifyDataController::keys_exists(true, $comp_user, key_ci, key_password);
 
         $comp_ci = $comp_user[key_ci];
         $comp_password = $comp_user[key_password];
@@ -78,7 +78,7 @@ class SignController {
 
         $comp_user = $data[key_user];
         // Validar que existan las keys requeridas
-        VerifyDataController::keys_exists($comp_user, key_ci, key_password, key_typeuser);
+        VerifyDataController::keys_exists(true, $comp_user, key_ci, key_password, key_typeuser);
 
         $comp_ci = $comp_user[key_ci];
         $comp_password = $comp_user[key_password];
@@ -132,7 +132,7 @@ class SignController {
        
         $user = $data[key_user];
 
-        VerifyDataController::keys_exists($user, key_ci);
+        VerifyDataController::keys_exists(true ,$user, key_ci);
 
         $comp_ci = $user[key_ci];
 

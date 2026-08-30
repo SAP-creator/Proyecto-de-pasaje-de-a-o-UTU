@@ -32,7 +32,13 @@ class HttpResponse {
     }
 
     public static function created(mixed ... $data ): self {
-        return new self(201, json_encode($data));
+        $json_data = [];
+
+        foreach($data as $d){
+            $json_data = json_encode($d);
+        }
+
+        return new self(201, $json_data);
     }
 
 
