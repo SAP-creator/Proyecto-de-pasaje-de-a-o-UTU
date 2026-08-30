@@ -2,21 +2,22 @@
 #!inicio de grupo
 #¡fin de un grupo
 #-subgrupo
+#*modificar
 #comentario normal
 
 
+Options +FollowSymLinks
 RewriteEngine On
-#NOTA: Cambiar cuando se cambie la ruta !!!
 RewriteBase /GIT/api/
-
 
 #!GRUPO API DE USUARIO.
 #-API POR TIPO
-RewriteRule ^user/sysAdmin(/.*)?$ apis/users_api/API_SysAdmin.php [L,QSA]
-RewriteRule ^user/municipal(/.*)?$ apis/users_api/API_Municipal.php [L,QSA]
-RewriteRule ^user/camionero(/.*)?$ apis/users_api/API_Camionero.php [L,QSA]
-RewriteRule ^user/vecino(/.*)?$ apis/users_api/API_Vecino.php [L,QSA]
+RewriteRule ^user/AdminSys(/.*)?$ apis/users_api/API_AdminSys.php [L,QSA]
+
+
+#*RewriteRule ^user/AdminMunicipal(/.*)?$ apis/users_api/API_Municipal.php [L,QSA]
+#*RewriteRule ^user/camionero(/.*)?$ apis/users_api/API_Camionero.php [L,QSA]
+#*RewriteRule ^user/vecino(/.*)?$ apis/users_api/API_Vecino.php [L,QSA]
 
 #-API DEFAULT USUARIO
 RewriteRule ^user/?(.*)$ apis/users_api/API_DefaultUser.php [L,QSA]
-#¡

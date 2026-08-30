@@ -3,8 +3,11 @@ include_once __DIR__ . "/../../utils/resp_http.php";
 
 include_once __DIR__ . "/../../constantes/json_constantes.php";
 include_once __DIR__ . "/../../constantes/rutas_constantes.php";
+include_once __DIR__ . "/../controladores/verify_data_controller.php";
+
 
 include_once __DIR__ . "/../../controladores/auth_controller.php";
+include_once __DIR__ . "/../../controladores/sign_controller.php";
 
 
 
@@ -33,72 +36,80 @@ if (! is_array($data)){
 opciones_http($method,$path,$data);
 
 function opciones_http(string $metodo, string $ruta, ?array $datos){ 
-    AuthController::valid_user_type($datos,user);
-
+    AuthController::valid_user_type($datos,enum_tipo_admin_sistema);
+    
     switch ($metodo) {
         case "POST":
             $res = opciones_POST($ruta,$datos);
-            break;
+             break;
 
         case "GET":
             $res = opciones_GET($ruta,$datos);
-            break;
+             break;
         
         default:
             
             $res = HttpResponse::error("no existe el metodo {$metodo} en admistrador de sistemas");
+             break;
     }
     $res->send();
 }
 
 function opciones_POST(string $ruta,array $datos):HttpResponse{
 
-    include_once __DIR__ . "/../../Controladores/userdata.php";
-
+    
+    VerifyDataController::keys_exists($datos,key_user); 
+    
     switch ($ruta){
-
-        case "/aceptarSignIn":
-            return HttpResponse::ok("por ahora nada");
+        
+        case "/AceptarSignUp":
+            return SignController::accept_sign_up($datos);
             break;
             
 
         default:
-            return HttpResponse::error("no existe la ruta {$ruta} en el metodo de POST de administrador de sistema.");
+            return HttpResponse::error("no existe la ruta \"{$ruta}\" en el metodo de POST de administrador de sistema.");
+             break;
     }
 
 }
 
 function opciones_GET(string $ruta, array $datos):HttpResponse{
 
-    include_once __DIR__ . "/../../Controladores/userdata.php";
 
     switch ($ruta){
 
         case "/users/data":
             return HttpResponse::ok("por ahora nada");
+             break;
             
 
 
         case "/users/data/peticiones":
             return HttpResponse::ok("por ahora nada");
+             break;
             
 
 
         case "/users/exist":
             return HttpResponse::ok("por ahora nada");
+             break;
             
 
 
         case "/logs/users":
             return HttpResponse::ok("por ahora nada");
+             break;
 
 
         case "/logs/sql":
             return HttpResponse::ok("por ahora nada");
+             break;
 
 
         default:
             return HttpResponse::error("no existe la ruta {$ruta} en el metodo GET de administrador de sistema");
+             break;
             
     }
 

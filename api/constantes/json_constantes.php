@@ -13,6 +13,8 @@ const key_ci = "CI";
 #Contraseña del usuario
 const key_password = "PASSWORD";
 
+const key_completeuser = "COMPLETEUSER";
+
 #Token (implementacion a medias de JWS/JWV)
 const key_token = "TOKEN";
 #Firma de token

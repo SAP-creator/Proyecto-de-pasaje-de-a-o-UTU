@@ -12,7 +12,7 @@ class UserModel{
         $db = new DatabaseConnection();
 
         if (empty($type)) {
-            $sql = "SELECT * FROM " . sql_usuario;
+            $sql = "SELECT * FROM " . sql_tabla_usuario;
             // Sin parámetros si no hay filtro
             $query_result = $db->executeQuery($sql); 
         } else {
@@ -20,11 +20,11 @@ class UserModel{
                 return null; 
             }
 
-            $sql = "SELECT * FROM " . sql_usuario . " WHERE tipo = ?";
+            $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE tipo = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
         }
 
-        if (!is_null($query_result->success)) {
+        if (!($query_result->success)) {
             return null;
         }
 
@@ -39,7 +39,7 @@ class UserModel{
         $db = new DatabaseConnection();
 
         if (empty($type)) {
-            $sql = "SELECT * FROM " . sql_soli_usuario;
+            $sql = "SELECT * FROM " . sql_tabla_soli_usuario;
             // Sin parámetros si no hay filtro
             $query_result = $db->executeQuery($sql); 
         } else {
@@ -47,11 +47,11 @@ class UserModel{
                 return null; 
             }
 
-            $sql = "SELECT * FROM " . sql_usuario . " WHERE tipo = ?";
+            $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE tipo = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
         }
 
-        if (!is_null($query_result->success)) {
+        if (!($query_result->success)) {
             return null;
         }
 
@@ -60,12 +60,12 @@ class UserModel{
 
     public static function get_user(int $ci): ?array 
     {
-        $sql = "SELECT * FROM " . sql_usuario . " WHERE cedula = ?";
+        $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE cedula = ?";
         
         $db = new DatabaseConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
 
-        if (!is_null($query_result->success)) { return null; }
+        if (!($query_result->success)) { return null; }
 
         // fetch_assoc() devuelve el array del usuario o null si no existe
         $user = $query_result->data->fetch_assoc();
@@ -75,12 +75,12 @@ class UserModel{
 
     public static function get_request_user(int $ci): ?array
     {
-        $sql = "SELECT * FROM " . sql_soli_usuario . " WHERE cedula = ?";
+        $sql = "SELECT * FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
         
         $db = new DatabaseConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
 
-        if (!is_null($query_result->success)) {
+        if (!($query_result->success)) {
             return null; 
         }
 
@@ -99,10 +99,10 @@ class UserModel{
         $db = new DatabaseConnection();
 
         if (empty($type)) {
-            $sql = "SELECT 1 FROM " . sql_usuario . " WHERE cedula = ?";
+            $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE cedula = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
 
-            if (!is_null($query_result->success)) {
+            if (!($query_result->success)) {
                 return null;
             }
 
@@ -113,10 +113,10 @@ class UserModel{
             return null;
         }
 
-        $sql = "SELECT 1 FROM " . sql_usuario . " WHERE cedula = ? AND tipo = ?";
+        $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE cedula = ? AND tipo = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
 
-        if (!is_null($query_result->success)) {
+        if (!($query_result->success)) {
             return null;
         }
 
@@ -132,10 +132,10 @@ class UserModel{
         $db = new DatabaseConnection();
 
         if (empty($type)) {
-            $sql = "SELECT 1 FROM " . sql_soli_usuario . " WHERE cedula = ?";
+            $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
 
-            if (!is_null($query_result->success)) {
+            if (!($query_result->success)) {
                 return null;
             }
 
@@ -146,10 +146,10 @@ class UserModel{
             return null;
         }
 
-        $sql = "SELECT 1 FROM " . sql_soli_usuario . " WHERE cedula = ? AND tipo = ?";
+        $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE cedula = ? AND tipo = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
 
-        if (!is_null($query_result->success)) {
+        if (!($query_result->success)) {
             return null;
         }
 
@@ -163,61 +163,69 @@ class UserModel{
     #null - error en la query
     public static function create_request_user(int $ci,string $clave, string $type): ?bool
     {
-        $sql = "INCERT INTO ". sql_soli_usuario . "
-                (ci, clave, tipo) VALUES (?, ?, ?)";
+        $sql = "INSERT INTO ". sql_tabla_soli_usuario . "
+                (cedula, clave, tipo) VALUES (?, ?, ?)";
         
         $db = new DatabaseConnection();
+        
         $result = $db->executeQuery($sql, "iss",$ci,$clave,$type);
+        
         return $result->success;
     }
 
-    #accepta un solicitud de usuario. Elimina la solicitud y crea el usuario con todas sus tabblas
+    # Acepta una solicitud de usuario. Elimina la solicitud y crea el usuario con sus subtablas
     #-- retorna:
-    #true - lo consiguio
-    #false - no lo consiguio
-    #null - error en la query
+    # true - lo consiguió
+    # false - no lo consiguió o falló alguna query
     public static function accept_request_user(int $ci): ?bool
     {
         $has_request = UserModel::has_request_user($ci);
-
-        if ($has_request != true){ return $has_request; }
+        if ($has_request !== true) { 
+            return $has_request; 
+        }
 
         $user_request = UserModel::get_request_user($ci);
+        if (!$user_request) {
+            return false;
+        }
+
+        $tipo = $user_request[sql_tipo];
+        $clave = $user_request[sql_clave];
         
-        $sql = sql_usuario_tipo[ $user_request["tipo"] ];
-        $clave = $user_request[ "clave" ];
+        if (!array_key_exists($tipo, self::sql_accept_user)) {
+            return false;
+        }
 
         $db = new DatabaseConnection();
-        $result = null;
-        
-        if (array_key_exists($user_request["tipo"], sql_trabajador_tipo))
-        {
+
+        // 1. Ejecutar cada INSERT del array según el tipo de usuario
+        foreach (self::sql_accept_user[$tipo] as $sql) {
             
-            $result = $db->executeQuery($sql, "isii", $ci, $clave, $ci, $ci);
-        }
-        else
-        {
-            $result = $db->executeQuery($sql, "isi", $ci, $clave, $ci);
-        }
-        
-        if ($result->success != true){return $result->success;}
+            // Si la consulta es para la tabla 'usuario', lleva la clave además de la cédula
+            $result = str_contains($sql, "usuario (") 
+                ? $db->executeQuery($sql, "is", $ci, $clave)
+                : $db->executeQuery($sql, "i", $ci);
 
-        $sql = "DELETE FROM " . sql_soli_usuario . "
-                WHERE cedula = ?";
-        
-        $result = $db->executeQuery($sql,"i",$ci);
+            if (!$result->success) {
+                return false;
+            }
+        }
 
-        return $result->success;
+        // 2. Eliminar la solicitud
+        $sql_delete = "DELETE FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
+        $result_delete = $db->executeQuery($sql_delete, "i", $ci);
+
+        return $result_delete->success;
     }
 
-
+    // CORREGIDO: Los valores 'tipo' insertados coinciden exactamente con el ENUM
     private const sql_accept_user = [
         "vecino" => [
-            "INSERT INTO usuario (cedula, clave, tipo,datos_completados) VALUES (?, ?, 'vecino', true)",
+            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'vecino', true)",
             "INSERT INTO vecino (cedula) VALUES (?)"
         ],
         "operario" => [
-            "INSERT INTO usuario (cedula, clave, tipo,datos_completados) VALUES (?, ?, 'operativo', false)",
+            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'operario', false)", // 'operativo' -> 'operario'
             "INSERT INTO trabajador (cedula) VALUES (?)",
             "INSERT INTO operador (cedula) VALUES (?)"
         ],
@@ -232,13 +240,11 @@ class UserModel{
             "INSERT INTO admin_municipal_general (cedula) VALUES (?)"
         ],
         "admin sistema" => [
-            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'admin', false)",
+            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'admin sistema', false)", // 'admin' -> 'admin sistema'
             "INSERT INTO trabajador (cedula) VALUES (?)",
             "INSERT INTO admin_sistemas (cedula) VALUES (?)"
         ]
     ];
-
-   
     
     
 }

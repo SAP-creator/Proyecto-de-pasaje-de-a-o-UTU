@@ -3,15 +3,15 @@ USE DB;
 
 CREATE TABLE usuario (
     cedula INT(9) NOT NULL,
-    datos_completados BOOLEAN,
-    clave VARCHAR(20),
+    datos_completados BOOLEAN NOT NULL,
+    clave text(255),
     tipo ENUM('vecino', 'operario', 'admin operador','admin general', 'admin sistema'),
     PRIMARY KEY (cedula)
 );
 
 CREATE TABLE solicitud_usuario (
     cedula INT(9) NOT NULL,
-    clave VARCHAR(20),
+    clave text(255),
     tipo ENUM('vecino', 'operario', 'admin operador','admin general', 'admin sistema'),
     PRIMARY KEY (cedula)
 );
