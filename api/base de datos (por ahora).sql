@@ -1,46 +1,172 @@
-Create Database DB;
-Use DB;
+CREATE DATABASE DB;
+USE DB;
 
-Create Table usuario(
-    cedula INT(9) NOT NULL, PRIMARY KEY (cedula),
-    clave TEXT(20),
-    tipo ENUM("vecino","camionero","municipal","admin")
+CREATE TABLE usuario (
+    cedula INT(9) NOT NULL,
+    datos_completados BOOLEAN,
+    clave VARCHAR(20),
+    tipo ENUM('vecino', 'operario', 'admin operador','admin general', 'admin sistema'),
+    PRIMARY KEY (cedula)
 );
 
-Create Table solicitud_usuario(
-    cedula INT(9) NOT NULL, PRIMARY KEY(cedula),
-    clave TEXT(20),
-    tipo ENUM("vecino","camionero","municipal","admin")
+CREATE TABLE solicitud_usuario (
+    cedula INT(9) NOT NULL,
+    clave VARCHAR(20),
+    tipo ENUM('vecino', 'operario', 'admin operador','admin general', 'admin sistema'),
+    PRIMARY KEY (cedula)
 );
 
-Create Table trabajador (
+CREATE TABLE trabajador (
     nombre VARCHAR(100),
     apellido VARCHAR(100),
-    cedula  INT(9),
+    cedula INT(9) NOT NULL,
     PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES usuario(cedula)
+    FOREIGN KEY (cedula) REFERENCES usuario(cedula) ON DELETE CASCADE
 );
 
-Create Table vecino (
-    cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES usuario (cedula)
+CREATE TABLE vecino (
+    cedula INT(9) NOT NULL,
+    PRIMARY KEY (cedula),
+    FOREIGN KEY (cedula) REFERENCES usuario(cedula) ON DELETE CASCADE
 );
 
-Create Table admin_sistemas (
-    cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
+CREATE TABLE admin_sistemas (
+    cedula INT(9) NOT NULL,
+    PRIMARY KEY (cedula),
+    FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
 
-Create Table operador (
-    cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
+CREATE TABLE operador (
+    cedula INT(9) NOT NULL,
+    PRIMARY KEY (cedula),
+    FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
 
-Create Table admin_municipal_operador (
-    cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
+CREATE TABLE admin_municipal_operador (
+    cedula INT(9) NOT NULL,
+    PRIMARY KEY (cedula),
+    FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
-Create Table admin_municipal_general (
-    cedula  INT(9) NOT NULL, PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES trabajador (cedula)
+
+CREATE TABLE admin_municipal_general (
+    cedula INT(9) NOT NULL,
+    PRIMARY KEY (cedula),
+    FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
+);
+
+CREATE TABLE log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    texto TEXT,
+    cedula_usuario INT(9) NOT NULL,
+    FOREIGN KEY (cedula_usuario) REFERENCES usuario(cedula)
+);
+
+CREATE TABLE incidente (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_incidente ENUM('Grave', 'Moderado', 'Leve'),
+    cedula_vecino INT(9),
+    FOREIGN KEY (cedula_vecino) REFERENCES vecino(cedula)
+);
+
+CREATE TABLE mes_llenado (
+    mes VARCHAR(20),
+    anio INT,
+    PRIMARY KEY (mes, anio)
+);
+
+CREATE TABLE aviso_llenado (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    mes VARCHAR(20),
+    anio INT,
+    cantidad INT(1),
+    FOREIGN KEY (mes, anio) REFERENCES mes_llenado(mes, anio) ON DELETE CASCADE
+);
+
+CREATE TABLE contenedor (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ubicacion VARCHAR(255),
+    tipo_residuos ENUM('Orgánico', 'Plástico', 'Vidrio', 'Papel', 'General'),
+    id_aviso INT,
+    FOREIGN KEY (id_aviso) REFERENCES aviso_llenado(id)
+);
+
+CREATE TABLE centro_almacenamiento (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_residuos ENUM('Orgánico', 'Plástico', 'Vidrio', 'Papel', 'General')
+);
+
+CREATE TABLE ruta (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_contenedor INT,
+    id_centro_inicio INT,
+    id_centro_final INT,
+    FOREIGN KEY (id_contenedor) REFERENCES contenedor(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_centro_inicio) REFERENCES centro_almacenamiento(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_centro_final) REFERENCES centro_almacenamiento(id) ON DELETE CASCADE
+);
+
+CREATE TABLE trayecto (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    hora_aproximada TIME,
+    dia_semana VARCHAR(15),
+    id_ruta INT,
+    FOREIGN KEY (id_ruta) REFERENCES ruta(id) ON DELETE CASCADE
+);
+
+CREATE TABLE cuadrilla (
+    id INT AUTO_INCREMENT PRIMARY KEY
+);
+
+CREATE TABLE camionero (
+    cedula INT(9) NOT NULL PRIMARY KEY,
+    id_cuadrilla INT,
+    FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE,
+    FOREIGN KEY (id_cuadrilla) REFERENCES cuadrilla(id) ON DELETE CASCADE
+);
+
+CREATE TABLE camion (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_residuos ENUM('Orgánico', 'Plástico', 'Vidrio', 'Papel', 'General')
+);
+
+-- Tablas N:M con nombres corregidos (guion bajo en lugar de comillas)
+
+CREATE TABLE camion_cuadrilla (
+    id_camion INT,
+    id_cuadrilla INT,
+    PRIMARY KEY (id_camion, id_cuadrilla),
+    FOREIGN KEY (id_camion) REFERENCES camion(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_cuadrilla) REFERENCES cuadrilla(id) ON DELETE CASCADE
+);
+
+CREATE TABLE usa_trayecto (
+    id_cuadrilla INT,
+    id_trayecto INT,
+    PRIMARY KEY (id_cuadrilla, id_trayecto),
+    FOREIGN KEY (id_cuadrilla) REFERENCES cuadrilla(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_trayecto) REFERENCES trayecto(id) ON DELETE CASCADE
+);
+
+CREATE TABLE gestiona_trayecto (
+    cedula_operativo INT(9),
+    id_trayecto INT,
+    PRIMARY KEY (cedula_operativo, id_trayecto),
+    FOREIGN KEY (cedula_operativo) REFERENCES trabajador(cedula) ON DELETE CASCADE,
+    FOREIGN KEY (id_trayecto) REFERENCES trayecto(id) ON DELETE CASCADE
+);
+
+CREATE TABLE ve_log (
+    cedula_admin INT(9),
+    id_log INT,
+    PRIMARY KEY (cedula_admin, id_log),
+    FOREIGN KEY (cedula_admin) REFERENCES admin_sistemas(cedula) ON DELETE CASCADE,
+    FOREIGN KEY (id_log) REFERENCES log(id) ON DELETE CASCADE
+);
+
+CREATE TABLE ve_aviso (
+    cedula_operativo INT(9),
+    id_aviso INT,
+    PRIMARY KEY (cedula_operativo, id_aviso),
+    FOREIGN KEY (cedula_operativo) REFERENCES trabajador(cedula) ON DELETE CASCADE,
+    FOREIGN KEY (id_aviso) REFERENCES aviso_llenado(id) ON DELETE CASCADE
 );

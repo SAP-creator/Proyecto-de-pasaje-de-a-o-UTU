@@ -22,6 +22,7 @@ opciones_http($method, $path,$data);
 function opciones_http(string $metodo,string $ruta,?array $datos){
     switch ($metodo) {
         case "POST":
+
             if (! is_array($datos)){
                 $res = HttpResponse::error("No puede hacer una peticion POST sin json en body",http_bad_request);
                 break;
@@ -37,25 +38,33 @@ function opciones_http(string $metodo,string $ruta,?array $datos){
             break;
 
         default:
-            $res = HttpResponse::error("Metodo no permitido");
-            
-
+            $res = HttpResponse::error("Metodo {$metodo} no permitido");
             break;
     }
     $res->send();
 }
 
 function opciones_post(string $opcion,array $datos):HttpResponse{
-    switch ($opcion){
-        case "/signIn":
-            return HttpResponse::ok("por ahora nada");
-        case "/signUp":
-            return HttpResponse::ok("por ahora nada");
+    if (str_contains($opcion,"Sing")){
+        $sing_op = str_replace("Sing","",$opcion);
+        include_once __DIR__ . "/../../controladores/sign_controller.php";
 
-        default:
-            return HttpResponse::error( 
-                "no existe la opcion {$opcion}. Porfavor revise nuevamente enviando un http OPTION a /api/users",
-                http_bad_request
-            );
+        switch ($sing_op){
+            case "/In":
+
+                return SingController::sing_in($data);
+            case "/Up":
+                return HttpResponse::ok("por ahora nada");
+
+            
+        }
     }
+
+
+
+
+    return HttpResponse::error( 
+        "no existe la opcion {$opcion}. Porfavor revise nuevamente enviando un http OPTION a /api/users",
+        http_bad_request
+                );
 }
