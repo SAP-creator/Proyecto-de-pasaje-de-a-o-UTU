@@ -23,9 +23,9 @@ class UserSetupController{
 
         $is_complete = UserSetupModel::user_is_complete($ci);
 
-        if ( is_array($is_complete) )
+        if ( $is_complete == false )
         {
-            HttpResponse::error(json_encode($is_complete), http_forbidden)->send();
+            HttpResponse::error(UserSetupController::user_complete($data), http_forbidden)->send();
             die;
         }            
         
@@ -40,8 +40,25 @@ class UserSetupController{
 
     #completa el usuario con toda la informacion que le falta. Rellena todas las que puede pero tira un warning si falta alguna (null)
     #cuando todos los datos del usuario (no son null) entonces cambia datos completos a true.
-    public static function complet_user(array $data){
+    private static function user_complete(array $data):array{
+        VerifyDataController::keys_exists(true, $data, key_user);
+        $user = $data[key_user];
+        VerifyDataController::keys_exists(true, $user, key_typeuser,key_ci);
+
+        $ci = (int) $user[key_ci];
+        $typeuser = (string) $user[key_typeuser];
+
+        $complete_data = UserSetupModel::user_complete($typeuser,$ci);
+
+        $data = [];
+        if (is_array($complete_data))
+        {   foreach($complete_data as $key=>$value)
+                {if (! $value) array_push($data,$key);}}
+
+        return $data;
 
     }
+
+    public static g
 
 }

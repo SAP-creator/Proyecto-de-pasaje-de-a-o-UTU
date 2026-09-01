@@ -17,14 +17,14 @@ class DatabaseConnection {
         $result = new QueryResult();
 
         if (strlen($types) != count($params)) {
-            $result->error = "Types count does not match params count.";
+            $result->error = "Error los tipos de datos no son coicidentes";
             return $result;
         }
 
         $stmt = $this->connection->prepare($query);
 
         if (!$stmt) {
-            $result->error = "Error preparing query";
+            $result->error = "Error preparando query";
             return $result;
         }
 
@@ -33,7 +33,7 @@ class DatabaseConnection {
         }
 
         if (!$stmt->execute()) {
-            $result->error = "Execution error: " . $stmt->error;
+            $result->error = "Error en ejecucion: " . $stmt->error;
             $stmt->close();
             return $result;
         }

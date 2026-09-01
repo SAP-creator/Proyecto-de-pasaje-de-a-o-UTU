@@ -41,14 +41,13 @@ class AdminController
 
         $requests = UserModel::get_request_users($type);
 
-        if (is_null($requests)) {
+        if (is_null($requests)) 
             return HttpResponse::error("Tipo de usuario incorrecto o error al obtener solicitudes", http_internal_error);
-        }
 
+        
         if ($ci_admin) 
-        {
             LogModel::add_log_user($ci_admin, self::type_log, "Obtiene las solicitudes de registro de usuarios");
-        }
+        
 
         return HttpResponse::ok($requests);
     }

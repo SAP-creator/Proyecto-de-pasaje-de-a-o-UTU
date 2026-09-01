@@ -25,7 +25,7 @@ class UserSetupModel{
     }
 
 
-    public static function user_complet(string $typeuser, array $data): bool|null|array
+    public static function user_complete(string $typeuser, int $ci): bool|null|array
     {
         if ( in_array($typeuser,sql_usuario_tipo) )
             return null;
@@ -37,7 +37,7 @@ class UserSetupModel{
 
         $db = new DatabaseConnection();
 
-        $result_query = $db->executeQuery( $sql );
+        $result_query = $db->executeQuery( $sql, "i", $ci );
 
         if ( $result_query->success != true )
             return null;
@@ -53,7 +53,7 @@ class UserSetupModel{
         return $data;
     }
  
-     private const sql_user_complete = [
+    private const sql_user_complete = [
         enum_tipo_vecino => null,
         
         enum_tipo_operario => "SELECT
