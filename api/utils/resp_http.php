@@ -13,7 +13,6 @@ const http_not_found = 404;
 const http_internal_error = 500;
 
 
-
 class HttpResponse {
 
     private int $status;

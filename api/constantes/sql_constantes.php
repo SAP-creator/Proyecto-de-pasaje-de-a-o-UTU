@@ -8,6 +8,7 @@ const sql_tipo = "tipo";
 
 // 2. Nombres de las TABLAS en la BD
 const sql_tabla_usuario = "usuario";
+const sql_tabla_trabajador = "trabajador";
 const sql_tabla_soli_usuario = "solicitud_usuario";
 const sql_tabla_vecino = "vecino";
 const sql_tabla_operador = "operador";

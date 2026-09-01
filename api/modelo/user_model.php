@@ -184,29 +184,29 @@ class UserModel
     }
 
     private const sql_accept_user = [
-        "vecino" => [
-            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'vecino', true)",
-            "INSERT INTO vecino (cedula) VALUES (?)"
+        enum_tipo_vecino => [
+            "INSERT INTO ".sql_tabla_usuario." (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_vecino."', true)",
+            "INSERT INTO ".enum_tipo_vecino." (cedula) VALUES (?)"
         ],
-        "operario" => [
-            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'operario', false)",
-            "INSERT INTO trabajador (cedula) VALUES (?)",
-            "INSERT INTO operador (cedula) VALUES (?)"
+        enum_tipo_operario => [
+            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_operario."', false)",
+            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
+            "INSERT INTO ".sql_tabla_operador." (cedula) VALUES (?)"
         ],
-        "admin operador" => [
-            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'admin operador', false)",
-            "INSERT INTO trabajador (cedula) VALUES (?)",
-            "INSERT INTO admin_municipal_operador (cedula) VALUES (?)"
+        enum_tipo_admin_operador => [
+            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_admin_operador."', false)",
+            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
+            "INSERT INTO ".sql_tabla_muni_operador." (cedula) VALUES (?)"
         ],
-        "admin general" => [
-            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'admin general', false)",
-            "INSERT INTO trabajador (cedula) VALUES (?)",
-            "INSERT INTO admin_municipal_general (cedula) VALUES (?)"
+        enum_tipo_admin_general => [
+            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_admin_general."', false)",
+            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
+            "INSERT INTO ".sql_tabla_muni_general." (cedula) VALUES (?)"
         ],
-        "admin sistema" => [
-            "INSERT INTO usuario (cedula, clave, tipo, datos_completados) VALUES (?, ?, 'admin sistema', false)",
-            "INSERT INTO trabajador (cedula) VALUES (?)",
-            "INSERT INTO admin_sistemas (cedula) VALUES (?)"
+        enum_tipo_admin_sistema => [
+            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_admin_sistema."', false)",
+            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
+            "INSERT INTO ".sql_tabla_admin." (cedula) VALUES (?)"
         ]
     ];
 }
