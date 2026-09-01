@@ -13,7 +13,7 @@ RewriteBase /GIT/api/
 #!GRUPO API DE USUARIO.
 #-API POR TIPO
 RewriteRule ^user/AdminSys(/.*)?$ apis/users_api/API_AdminSys.php [L,QSA]
-
+RewriteRule ^borrar_datos/(/.*)?$ apis/API_Teapot.php [L,QSA]
 
 #*RewriteRule ^user/AdminMunicipal(/.*)?$ apis/users_api/API_Municipal.php [L,QSA]
 #*RewriteRule ^user/camionero(/.*)?$ apis/users_api/API_Camionero.php [L,QSA]

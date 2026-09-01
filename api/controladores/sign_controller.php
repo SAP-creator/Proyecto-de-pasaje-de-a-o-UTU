@@ -1,6 +1,8 @@
 <?php
 
 include_once __DIR__ . "/../modelo/user_model.php";
+include_once __DIR__ . "/../modelo/log_model.php";
+
 include_once __DIR__ . "/../constantes/json_constantes.php";
 include_once __DIR__ . "/../constantes/rutas_constantes.php";
 include_once __DIR__ . "/../utils/resp_http.php";
@@ -11,9 +13,11 @@ include_once __DIR__ . "/../controladores/auth_controller.php";
 class SignController {
 
     private const clave = "TuMrTiUnPo lla. QuYaQuis Yo";
+    private const type_log = "SIGN CONTROLLER";
 
     static public function sign_in(array $data): HttpResponse 
     {
+       
 
         $comp_user = $data[key_user];
 
@@ -67,6 +71,8 @@ class SignController {
             ]
         ];
         #para mi yo del futuro cercano. Para todo lo que es agregar cosas al token, es aca donde debes trabajar.
+
+        LogModel::add_log_user($comp_ci,self::type_log,"El usuario inicio sesion");
 
         return HttpResponse::ok(AuthController::create_token($token_user)) ;
 
@@ -123,6 +129,8 @@ class SignController {
             return HttpResponse::error("error interno", http_internal_error);
         }
 
+        LogModel::add_log_user($comp_ci, self::type_log, "Quiere registrarse en el sistema el user");
+
         return HttpResponse::ok();
 
     }
@@ -160,6 +168,8 @@ class SignController {
         if ($sucess != true){
             return HttpResponse::error("error interno", http_bad_request);
         }
+
+        LogModel::add_log_user($comp_ci, self::type_log, "se le acepto al usuario la solicitud de ser registrado");
 
         return HttpResponse::ok();
 

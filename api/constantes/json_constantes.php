@@ -25,3 +25,5 @@ const key_token_sig = "SIGNATURE";
 #tu! (nota eliminar para las entregas)
 #error, eso no mas.
 const key_error = "ERROR";
+
+const key_typelog = "TYPELOG";

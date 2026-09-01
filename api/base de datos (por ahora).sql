@@ -54,12 +54,21 @@ CREATE TABLE admin_municipal_general (
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
 
-CREATE TABLE log (
+CREATE TABLE log_user (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_log VARCHAR(50),
+    fecha TIMESTAMP DEFAULT (CURRENT_DATE),
     texto TEXT,
     cedula_usuario INT(9) NOT NULL,
     FOREIGN KEY (cedula_usuario) REFERENCES usuario(cedula)
 );
+
+CREATE TABLE log_sql {
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_modelo VARCHAR(50),
+    texto TEXT,
+    fecha TIMESTAMP DEFAULT (CURRENT_DATE)
+}
 
 CREATE TABLE incidente (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -155,18 +164,4 @@ CREATE TABLE gestiona_trayecto (
     FOREIGN KEY (id_trayecto) REFERENCES trayecto(id) ON DELETE CASCADE
 );
 
-CREATE TABLE ve_log (
-    cedula_admin INT(9),
-    id_log INT,
-    PRIMARY KEY (cedula_admin, id_log),
-    FOREIGN KEY (cedula_admin) REFERENCES admin_sistemas(cedula) ON DELETE CASCADE,
-    FOREIGN KEY (id_log) REFERENCES log(id) ON DELETE CASCADE
-);
 
-CREATE TABLE ve_aviso (
-    cedula_operativo INT(9),
-    id_aviso INT,
-    PRIMARY KEY (cedula_operativo, id_aviso),
-    FOREIGN KEY (cedula_operativo) REFERENCES trabajador(cedula) ON DELETE CASCADE,
-    FOREIGN KEY (id_aviso) REFERENCES aviso_llenado(id) ON DELETE CASCADE
-);
