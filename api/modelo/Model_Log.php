@@ -1,34 +1,34 @@
 <?php
 
-include_once __DIR__ . "/../constantes/sql_constantes.php";
-include_once __DIR__ . "/../utils/db_connection.php";
+include_once __DIR__ . "/../constantes/Const_Sql.php";
+include_once __DIR__ . "/../utils/Util_DbConnection.php";
 
-class LogModel
+class Model_Log
 {
 
     public static function add_log_user(int $ci, string $type_log, string $text): ?bool
     {
         $sql = "INSERT INTO log_user (cedula_usuario, tipo_log, texto) VALUES (?, ?, ?)";
 
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "iss", $ci, $type_log, $text);
 
         return $query_result->success;
     }
 
-    public static function add_log_sql(string $model,string $text): ?bool
+    public static function add_log_sql(string $model, string $text): ?bool
     {
         $sql = "INSERT INTO log_sql (tipo_modelo, texto) VALUES (?,?)";
         
-        $db = new DatabaseConnection();
-        $query_result = $db->executeQuery($sql,"ss",$model,$text);
+        $db = new Util_DbConnection();
+        $query_result = $db->executeQuery($sql, "ss", $model, $text);
 
         return $query_result->success;
     }
 
     public static function get_logs_user(int $ci, string $type_log = ""): ?array
     {
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         if (empty($type_log)) 
         {
@@ -65,7 +65,7 @@ class LogModel
             return null;
         }
 
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         if (empty($type_log)) 
         {
@@ -99,7 +99,7 @@ class LogModel
     public static function get_logs_sql(): ?array{
         $sql = "SELECT FROM * log_sql";
 
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         $query_result = $db->executeQuery($sql);
 

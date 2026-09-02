@@ -1,74 +1,69 @@
 <?php
 
-include_once __DIR__ . "/../../utils/resp_http.php";
-include_once __DIR__ . "/../../constantes/rutas_constantes.php";
-
-include_once __DIR__ . "/../../controladores/verify_data_controller.php";
+include_once __DIR__ . "/../../utils/Util_RestHttp.php";
+include_once __DIR__ . "/../../constantes/Const_Paths.php";
+include_once __DIR__ . "/../../controladores/Controller_VerifyData.php";
+include_once __DIR__ . "/../../controladores/Controller_UserSetup.php";
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 
 $method = $_SERVER['REQUEST_METHOD'];
-$original_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$original_route = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Eliminar la base de la ruta para dejar solo el endpoint
-$path = str_replace(ruta_api_usuario, '', $original_path);
+$route = str_replace(path_api_user, '', $original_route);
 
-#¿porque puse esto?
-if (strlen($path) === 0 || $path[0] !== '/') {
-    $path = '/' . $path;
+if (strlen($route) === 0 || $route[0] !== '/') {
+    $route = '/' . $route;
 }
-
+die;
 $data = json_decode(file_get_contents("php://input"), true);
 
-opciones_http($method, $path, $data);
+process_http_request($method, $route, $data);
 
-function opciones_http(string $metodo, string $ruta, ?array $datos) {
-    switch ($metodo) {
+function process_http_request(string $method, string $route, ?array $data) {
+    switch ($method) {
         case "POST":
-            if (!is_array($datos)) {
-                $res = HttpResponse::error("No puede hacer una peticion POST sin json en body", http_bad_request);
+            if (!is_array($data)) {
+                $response = Util_HttpResponse::error("No puede hacer una peticion POST sin json en body", http_bad_request);
                 break;
             }
-            $res = opciones_post($ruta, $datos);
+            $response = handle_post($route, $data);
             break;
 
         case "OPTIONS":
-            $res = HttpResponse::ok(json_decode(file_get_contents("opciones user.json")));
+            $response = Util_HttpResponse::ok(json_decode(file_get_contents("opciones user.json")));
             break;
 
         default:
-            $res = HttpResponse::error("Metodo {$metodo} no permitido");
+            $response = Util_HttpResponse::error("Metodo {$method} no permitido");
             break;
     }
-    $res->send();
+    $response->send();
 }
 
-function opciones_post(string $opcion, array $datos): HttpResponse {
-    // Corregido "Sing" por "Sign"
-    if (str_contains($opcion, "Sign")) {
-        
-        $sign_op = str_replace("/Sign", "", $opcion);
-        include_once __DIR__ . "/../../controladores/sign_controller.php";
-        
-        switch ($sign_op) {
-            case "In":
-                VerifyDataController::keys_exists(true, $datos,key_user);
-                
+function handle_post(string $route_option, array $data): Util_HttpResponse {
+   
+    include_once __DIR__ . "/../../controladores/Controller_Sign.php";
+    Controller_VerifyData::keys_exists(true, $data, json_user);
 
-                return SignController::sign_in($datos);
-                break;
-            case "Up":
-                VerifyDataController::keys_exists(true, $datos,key_user);
+    switch ($subroute_sign) {
+        case "SignIn":
+            return Controller_Sign::sign_in($data);
 
-                return SignController::sign_up($datos);
-                break;
-        }
+        case "SignUp":
+            return Controller_Sign::sign_up($data);
+
+        case "Complete":
+            return Controller_UserSetup::complete_user($data);
     }
 
-    return HttpResponse::error( 
-        "No existe la opcion {$opcion}. Por favor revise nuevamente enviando un HTTP OPTIONS a /api/users",
+
+
+
+    return Util_HttpResponse::error( 
+        "No existe la opcion {$route_option}. Por favor revise nuevamente enviando un HTTP OPTIONS a /api/users",
         http_bad_request
     );
 }

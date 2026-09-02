@@ -1,6 +1,6 @@
 <?php
 
-class DatabaseConnection {
+class Util_DbConnection {
 
     private mysqli $connection;
 

@@ -1,8 +1,8 @@
 <?php
-include_once __DIR__ . "/../utils/resp_http.php";
+include_once __DIR__ . "/../utils/Util_RestHttp.php";
 
 
-class VerifyDataController {
+class Controller_VerifyData {
     static public function keys_exists(bool $die, array $list, mixed ...$keys): bool {
         $verified_array = [];
 
@@ -13,7 +13,7 @@ class VerifyDataController {
                 if ($die) 
                 {
                     // Enviar la respuesta HTTP
-                    $res = HttpResponse::error("No existe la key {$key} en el array -Verify", http_bad_request);
+                    $res = Util_HttpResponse::error(http_unprocessable_entity, "No existe la key {$key} en el array -Verify");
                     $res->send();
 
                     exit;

@@ -1,20 +1,20 @@
 <?php
-include_once __DIR__ . "/../constantes/sql_constantes.php";
-include_once __DIR__ . "/../utils/db_connection.php";
-include_once __DIR__ . "/../modelo/log_model.php";
+include_once __DIR__ . "/../constantes/Const_Sql.php";
+include_once __DIR__ . "/../utils/Util_DbConnection.php";
+include_once __DIR__ . "/../modelo/Model_Log.php";
 
-class UserModel
+class Model_User
 {
     private const model_log = "USER MODEL";
 
     public static function get_users(string $type = ""): ?array
     {
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         if (empty($type)) {
             $sql = "SELECT * FROM " . sql_tabla_usuario;
             $query_result = $db->executeQuery($sql); 
-            LogModel::add_log_sql(self::model_log, "Obtener todos los usuarios");
+            Model_Log::add_log_sql(self::model_log, "Obtener todos los usuarios");
         } else {
             if (!in_array($type, sql_usuario_tipo)) {
                 return null; 
@@ -22,7 +22,7 @@ class UserModel
 
             $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE tipo = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
-            LogModel::add_log_sql(self::model_log, "Obtener usuarios filtrados por tipo: {$type}");
+            Model_Log::add_log_sql(self::model_log, "Obtener usuarios filtrados por tipo: {$type}");
         }
 
         if (!$query_result->success) {
@@ -34,12 +34,12 @@ class UserModel
 
     public static function get_request_users(string $type = ""): ?array
     {
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         if (empty($type)) {
             $sql = "SELECT * FROM " . sql_tabla_soli_usuario;
             $query_result = $db->executeQuery($sql); 
-            LogModel::add_log_sql(self::model_log, "Obtener todas las solicitudes de usuarios");
+            Model_Log::add_log_sql(self::model_log, "Obtener todas las solicitudes de usuarios");
         } else {
             if (!in_array($type, sql_usuario_tipo)) {
                 return null; 
@@ -47,7 +47,7 @@ class UserModel
 
             $sql = "SELECT * FROM " . sql_tabla_soli_usuario . " WHERE tipo = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
-            LogModel::add_log_sql(self::model_log, "Obtener solicitudes filtradas por tipo: {$type}");
+            Model_Log::add_log_sql(self::model_log, "Obtener solicitudes filtradas por tipo: {$type}");
         }
 
         if (!$query_result->success) {
@@ -61,9 +61,9 @@ class UserModel
     {
         $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE cedula = ?";
         
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
-        LogModel::add_log_sql(self::model_log, "Consultar usuario por cédula: {$ci}");
+        Model_Log::add_log_sql(self::model_log, "Consultar usuario por cédula: {$ci}");
 
         if (!$query_result->success) { return null; }
 
@@ -74,9 +74,9 @@ class UserModel
     {
         $sql = "SELECT * FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
         
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
-        LogModel::add_log_sql(self::model_log, "Consultar solicitud por cédula: {$ci}");
+        Model_Log::add_log_sql(self::model_log, "Consultar solicitud por cédula: {$ci}");
 
         if (!$query_result->success) { return null; }
 
@@ -85,12 +85,12 @@ class UserModel
 
     public static function has_user(int $ci, string $type = ""): ?bool
     {
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         if (empty($type)) {
             $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE cedula = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
-            LogModel::add_log_sql(self::model_log, "Verificar existencia de usuario CI: {$ci}");
+            Model_Log::add_log_sql(self::model_log, "Verificar existencia de usuario CI: {$ci}");
 
             if (!$query_result->success) { return null; }
             return $query_result->data->num_rows > 0;
@@ -102,7 +102,7 @@ class UserModel
 
         $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE cedula = ? AND tipo = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
-        LogModel::add_log_sql(self::model_log, "Verificar existencia de usuario CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::model_log, "Verificar existencia de usuario CI: {$ci} con tipo: {$type}");
 
         if (!$query_result->success) { return null; }
         return $query_result->data->num_rows > 0;
@@ -110,12 +110,12 @@ class UserModel
 
     public static function has_request_user(int $ci, string $type = ""): ?bool
     {
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         if (empty($type)) {
             $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
-            LogModel::add_log_sql(self::model_log, "Verificar existencia de solicitud CI: {$ci}");
+            Model_Log::add_log_sql(self::model_log, "Verificar existencia de solicitud CI: {$ci}");
 
             if (!$query_result->success) { return null; }
             return $query_result->data->num_rows > 0;
@@ -127,7 +127,7 @@ class UserModel
 
         $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE cedula = ? AND tipo = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
-        LogModel::add_log_sql(self::model_log, "Verificar existencia de solicitud CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::model_log, "Verificar existencia de solicitud CI: {$ci} con tipo: {$type}");
 
         if (!$query_result->success) { return null; }
         return $query_result->data->num_rows > 0;
@@ -136,10 +136,10 @@ class UserModel
     public static function create_request_user(int $ci, string $clave, string $type): ?bool
     {
         $sql = "INSERT INTO ". sql_tabla_soli_usuario . " (cedula, clave, tipo) VALUES (?, ?, ?)";
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
         $result = $db->executeQuery($sql, "iss", $ci, $clave, $type);
         
-        LogModel::add_log_sql(self::model_log, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::model_log, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}");
 
         return $result->success;
     }
@@ -163,7 +163,7 @@ class UserModel
             return false;
         }
 
-        $db = new DatabaseConnection();
+        $db = new Util_DbConnection();
 
         foreach (self::sql_accept_user[$tipo] as $sql) {
             $result = str_contains($sql, "usuario (") 
@@ -178,7 +178,7 @@ class UserModel
         $sql_delete = "DELETE FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
         $result_delete = $db->executeQuery($sql_delete, "i", $ci);
 
-        LogModel::add_log_sql(self::model_log, "Solicitud aceptada y usuario migrado CI: {$ci} como tipo: {$tipo}");
+        Model_Log::add_log_sql(self::model_log, "Solicitud aceptada y usuario migrado CI: {$ci} como tipo: {$tipo}");
 
         return $result_delete->success;
     }
@@ -208,5 +208,48 @@ class UserModel
             "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
             "INSERT INTO ".sql_tabla_admin." (cedula) VALUES (?)"
         ]
+    ];
+
+
+    public static function change_data(int $ci, string $table, string $collum, mixed $new_value): ?bool
+    {
+        if (! in_array($table, self::permitted_tables))
+            return null;
+        
+        if (! in_array($collum, self::permitted_tables[$collum]))
+            return null;
+
+        if (self::has_user($ci) != true)
+            return null;
+
+        $sql = "UPDATE ".$table."
+                SET ".$collum." = ?
+                WHERE ".sql_cedula." = ?";
+        
+        $type = "";
+
+        if (is_double($new_value)){
+            $type = "d";
+        }elseif(is_int($new_value)){
+            $type = "i";
+        }elseif(is_string($new_value)){
+            $type = "s";
+        }else{
+            return null;
+        }
+
+        $db = new Util_DbConnection();
+
+        $result_query = $db->executeQuery($sql,$type,$new_value);
+
+        return $result_query->success;
+    }
+
+    const permitted_tables = [
+        sql_tabla_usuario => [sql_clave],
+        sql_tabla_trabajador => [sql_nombre,sql_apellido],
+        sql_tabla_muni_general => [],
+        sql_tabla_muni_operador => [],
+        sql_tabla_admin => []
     ];
 }

@@ -1,10 +1,13 @@
 <?php
+// Const_Sql.php
 
 // 1. Columnas generales de las tablas
 const sql_clave = "clave";
 const sql_cedula = "cedula";
 const sql_usuario_completo = "datos_completados";
 const sql_tipo = "tipo";
+const sql_nombre = "nombre";
+const sql_apellido = "apellido";
 
 // 2. Nombres de las TABLAS en la BD
 const sql_tabla_usuario = "usuario";
