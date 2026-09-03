@@ -55,20 +55,19 @@ CREATE TABLE admin_municipal_general (
 );
 
 CREATE TABLE log_user (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    ci INT AUTO_INCREMENT PRIMARY KEY,
     tipo_log VARCHAR(50),
-    fecha TIMESTAMP DEFAULT (CURRENT_DATE),
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     texto TEXT,
-    cedula_usuario INT(9) NOT NULL,
-    FOREIGN KEY (cedula_usuario) REFERENCES usuario(cedula)
+    cedula_usuario INT(9) NOT NULL
 );
 
-CREATE TABLE log_sql {
-    id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE log_sql (
+    ci INT AUTO_INCREMENT PRIMARY KEY,
     tipo_modelo VARCHAR(50),
-    texto TEXT,
-    fecha TIMESTAMP DEFAULT (CURRENT_DATE)
-}
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    texto TEXT
+);
 
 CREATE TABLE incidente (
     id INT AUTO_INCREMENT PRIMARY KEY,

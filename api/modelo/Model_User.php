@@ -7,10 +7,12 @@ class Model_User
 {
     private const model_log = "USER MODEL";
 
+
     public static function get_users(string $type = ""): ?array
     {
         $db = new Util_DbConnection();
 
+        
         if (empty($type)) {
             $sql = "SELECT * FROM " . sql_tabla_usuario;
             $query_result = $db->executeQuery($sql); 
@@ -63,8 +65,9 @@ class Model_User
         
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
+        
         Model_Log::add_log_sql(self::model_log, "Consultar usuario por cédula: {$ci}");
-
+        
         if (!$query_result->success) { return null; }
 
         return $query_result->data->fetch_assoc(); 
@@ -166,7 +169,7 @@ class Model_User
         $db = new Util_DbConnection();
 
         foreach (self::sql_accept_user[$tipo] as $sql) {
-            $result = str_contains($sql, "usuario (") 
+            $result = str_contains($sql, "usuario") 
                 ? $db->executeQuery($sql, "is", $ci, $clave)
                 : $db->executeQuery($sql, "i", $ci);
 
@@ -213,34 +216,37 @@ class Model_User
 
     public static function change_data(int $ci, string $table, string $collum, mixed $new_value): ?bool
     {
-        if (! in_array($table, self::permitted_tables))
+        if (! array_key_exists($table, self::permitted_tables)) {
             return null;
-        
-        if (! in_array($collum, self::permitted_tables[$collum]))
-            return null;
+        }
 
-        if (self::has_user($ci) != true)
+        if (! in_array($collum, self::permitted_tables[$table], true)) {
             return null;
+        }
 
-        $sql = "UPDATE ".$table."
-                SET ".$collum." = ?
-                WHERE ".sql_cedula." = ?";
-        
+        if (self::has_user($ci) !== true) {
+            return null;
+        }
+
+        $sql = "UPDATE " . $table . "
+                SET " . $collum . " = ?
+                WHERE " . sql_cedula . " = ?";
+
         $type = "";
 
-        if (is_double($new_value)){
+        if (is_double($new_value)) {
             $type = "d";
-        }elseif(is_int($new_value)){
+        } elseif (is_int($new_value)) {
             $type = "i";
-        }elseif(is_string($new_value)){
+        } elseif (is_string($new_value)) {
             $type = "s";
-        }else{
+        } else {
             return null;
         }
 
         $db = new Util_DbConnection();
 
-        $result_query = $db->executeQuery($sql,$type,$new_value);
+        $result_query = $db->executeQuery($sql, $type . "i", $new_value, $ci);
 
         return $result_query->success;
     }

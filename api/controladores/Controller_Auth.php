@@ -37,10 +37,12 @@ class Controller_Auth {
 
     public static function comprobate_token(array $token, ...$extra_data): ?bool 
     {
-        if (!array_key_exists(json_token, $token)) return null;
-        if (!array_key_exists(json_token_sig, $token[json_token])) return null;
-        if (!self::comprobate_required_data($token[json_token])) return null;
+        
+        Controller_VerifyData::keys_exists(true,$token,json_token);
+        Controller_VerifyData::keys_exists(true,$token[json_token],json_token_sig);
 
+        if (!self::comprobate_required_data($token[json_token])) return null;
+        
         $data_user = $token[json_token][json_user];
 
         $token_data = [];
@@ -50,12 +52,13 @@ class Controller_Auth {
         $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
 
         Model_Log::add_log_user($token_data[json_ci], self::type_log, "Se comprueba el token del usuario");
-
+         
         return hash_equals($signature, $token[json_token][json_token_sig]);
     }
 
     private static function comprobate_required_data(array $user): bool 
     {
+        
         if (!array_key_exists(json_user, $user)) return false;
         $data_user = $user[json_user];
 
@@ -76,12 +79,7 @@ class Controller_Auth {
 
     public static function valid_user_type(array $data, string $type_user) 
     {
-        if (is_null($data)) {
-            $res = Util_HttpResponse::error(http_bad_request,"No se puede comprobar si es un {$type_user} sin los datos");
-            $res->send();
-            die();
-        }
-
+        
         if (!array_key_exists(json_token, $data)) {
             $res = Util_HttpResponse::error(http_bad_request,"No se puede usar opciones de {$type_user} sin un token.");
             $res->send();
@@ -89,7 +87,7 @@ class Controller_Auth {
         }
 
         $auth = Controller_Auth::comprobate_token_typeuser([json_token => $data[json_token]], $type_user);
-        
+       
         if ($auth === false) {
             $res = Util_HttpResponse::error(http_unaunthorize,"El token no es valido");
             $res->send();

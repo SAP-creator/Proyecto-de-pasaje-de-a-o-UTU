@@ -5,7 +5,6 @@ include_once __DIR__ . "/../utils/Util_DbConnection.php";
 
 class Model_Log
 {
-
     public static function add_log_user(int $ci, string $type_log, string $text): ?bool
     {
         $sql = "INSERT INTO log_user (cedula_usuario, tipo_log, texto) VALUES (?, ?, ?)";
@@ -18,9 +17,11 @@ class Model_Log
 
     public static function add_log_sql(string $model, string $text): ?bool
     {
-        $sql = "INSERT INTO log_sql (tipo_modelo, texto) VALUES (?,?)";
+        
+        $sql = "INSERT INTO log_sql (tipo_modelo, texto) VALUES (?, ?)";
         
         $db = new Util_DbConnection();
+        
         $query_result = $db->executeQuery($sql, "ss", $model, $text);
 
         return $query_result->success;
@@ -49,14 +50,13 @@ class Model_Log
             $query_result = $db->executeQuery($sql, "is", $ci, $type_log);
         }
 
-        if (!$query_result->success) 
+        if (!$query_result->success || is_null($query_result->data)) 
         {
             return null;
         }
 
         return $query_result->data->fetch_all(MYSQLI_ASSOC);
     }
-
 
     public static function get_logs_users(string $type_user, string $type_log = ""): ?array
     {
@@ -88,7 +88,7 @@ class Model_Log
             $query_result = $db->executeQuery($sql, "ss", $type_user, $type_log);
         }
 
-        if (!$query_result->success) 
+        if (!$query_result->success || is_null($query_result->data)) 
         {
             return null;
         }
@@ -96,12 +96,17 @@ class Model_Log
         return $query_result->data->fetch_all(MYSQLI_ASSOC);
     }
 
-    public static function get_logs_sql(): ?array{
-        $sql = "SELECT FROM * log_sql";
+    public static function get_logs_sql(): ?array 
+    {
+        $sql = "SELECT * FROM log_sql";
 
         $db = new Util_DbConnection();
-
         $query_result = $db->executeQuery($sql);
+
+        if (!$query_result->success || is_null($query_result->data)) 
+        {
+            return null;
+        }
 
         return $query_result->data->fetch_all(MYSQLI_ASSOC);
     }

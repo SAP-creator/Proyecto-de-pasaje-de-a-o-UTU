@@ -4,7 +4,7 @@ include_once __DIR__ . "/../modelo/Model_User.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 
 include_once __DIR__ . "/../constantes/Const_Json.php";
-include_once __DIR__ . "/../constantes/Const_Paths.php";
+include_once __DIR__ . "/../constantes/Const_Path.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../controladores/Controller_VerifyData.php";
 include_once __DIR__ . "/../controladores/Controller_Auth.php";
@@ -31,7 +31,7 @@ class Controller_Sign {
             return Util_HttpResponse::error(http_unprocessable_entity,"La cedula debe ser un entero valido");
         }
         $comp_ci = (int) $comp_ci;
-
+        
         if ($comp_ci < 0) {
             return Util_HttpResponse::error(http_unprocessable_entity,"La cedula no puede ser negativa");
         }
@@ -43,11 +43,11 @@ class Controller_Sign {
         if (!is_string($comp_password)) {
             return Util_HttpResponse::error(http_unprocessable_entity,"La clave debe ser texto");
         }
-
+        
         $user = Model_User::get_user($comp_ci);
 
         if (is_null($user)){
-            return Util_HttpResponse::error(http_bad_request,"");
+            return Util_HttpResponse::error(http_bad_request,"No se consiguo el user");
         }
         
         $real_hash_password = $user[sql_clave];

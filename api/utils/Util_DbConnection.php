@@ -17,21 +17,22 @@ class Util_DbConnection {
         $result = new QueryResult();
 
         if (strlen($types) != count($params)) {
-            $result->error = "Error los tipos de datos no son coicidentes";
+            $result->error = "Error los tipos de datos no son coincidentes";
             return $result;
         }
-
+        
         $stmt = $this->connection->prepare($query);
-
+        
         if (!$stmt) {
-            $result->error = "Error preparando query";
+            $result->error = "Error preparando query: " . $this->connection->error;
             return $result;
         }
-
-        if (!empty($params)) {
+       
+        // Solo vincular parámetros si realmente se pasaron
+        if (!empty($types) && !empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
-
+         
         if (!$stmt->execute()) {
             $result->error = "Error en ejecucion: " . $stmt->error;
             $stmt->close();
@@ -39,8 +40,10 @@ class Util_DbConnection {
         }
 
         $result->success = true;
+        
+        // get_result() devuelve false para INSERT, UPDATE, DELETE
         $data = $stmt->get_result();
-        $result->data = $data ?: null;
+        $result->data = ($data !== false) ? $data : null;
 
         $stmt->close();
 

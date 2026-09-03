@@ -1,7 +1,8 @@
 <?php
 
+
 include_once __DIR__ . "/../../utils/Util_RestHttp.php";
-include_once __DIR__ . "/../../constantes/Const_Paths.php";
+include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../controladores/Controller_VerifyData.php";
 include_once __DIR__ . "/../../controladores/Controller_UserSetup.php";
 
@@ -17,16 +18,16 @@ $route = str_replace(path_api_user, '', $original_route);
 if (strlen($route) === 0 || $route[0] !== '/') {
     $route = '/' . $route;
 }
-die;
 $data = json_decode(file_get_contents("php://input"), true);
 
 process_http_request($method, $route, $data);
 
 function process_http_request(string $method, string $route, ?array $data) {
+   
     switch ($method) {
         case "POST":
             if (!is_array($data)) {
-                $response = Util_HttpResponse::error("No puede hacer una peticion POST sin json en body", http_bad_request);
+                $response = Util_HttpResponse::error(http_bad_request,"No puede hacer una peticion POST sin json en body");
                 break;
             }
             $response = handle_post($route, $data);
@@ -37,9 +38,10 @@ function process_http_request(string $method, string $route, ?array $data) {
             break;
 
         default:
-            $response = Util_HttpResponse::error("Metodo {$method} no permitido");
+            $response = Util_HttpResponse::error(http_bad_request, "Metodo {$method} no permitido");
             break;
     }
+    
     $response->send();
 }
 
@@ -48,22 +50,21 @@ function handle_post(string $route_option, array $data): Util_HttpResponse {
     include_once __DIR__ . "/../../controladores/Controller_Sign.php";
     Controller_VerifyData::keys_exists(true, $data, json_user);
 
-    switch ($subroute_sign) {
-        case "SignIn":
+    switch ($route_option) {
+        case "/SignIn":
             return Controller_Sign::sign_in($data);
 
-        case "SignUp":
+        case "/SignUp":
             return Controller_Sign::sign_up($data);
 
-        case "Complete":
+        case "/Complete":
             return Controller_UserSetup::complete_user($data);
     }
 
 
 
-
     return Util_HttpResponse::error( 
+        http_bad_request,
         "No existe la opcion {$route_option}. Por favor revise nuevamente enviando un HTTP OPTIONS a /api/users",
-        http_bad_request
     );
 }
