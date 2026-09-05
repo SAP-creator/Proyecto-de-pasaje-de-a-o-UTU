@@ -14,14 +14,14 @@ const sql_tabla_usuario = "usuario";
 const sql_tabla_trabajador = "trabajador";
 const sql_tabla_soli_usuario = "solicitud_usuario";
 const sql_tabla_vecino = "vecino";
-const sql_tabla_operador = "operador";
+const sql_tabla_operador = "operador_camion";
 const sql_tabla_admin = "admin_sistemas";
 const sql_tabla_muni_operador = "admin_municipal_operador";
 const sql_tabla_muni_general = "admin_municipal_general";
 
 // 3. Valores permitidos para el ENUM 'tipo'
 const enum_tipo_vecino = "vecino";
-const enum_tipo_operario = "operario";
+const enum_tipo_operario = "operador camion";
 const enum_tipo_admin_operador = "admin operador";
 const enum_tipo_admin_general = "admin general";
 const enum_tipo_admin_sistema = "admin sistema";

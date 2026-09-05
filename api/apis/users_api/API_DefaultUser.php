@@ -51,13 +51,13 @@ function handle_post(string $route_option, array $data): Util_HttpResponse {
     Controller_VerifyData::keys_exists(true, $data, json_user);
 
     switch ($route_option) {
-        case "/SignIn":
+        case "/sign/in":
             return Controller_Sign::sign_in($data);
 
-        case "/SignUp":
+        case "/sign/up":
             return Controller_Sign::sign_up($data);
 
-        case "/Complete":
+        case "/complete":
             return Controller_UserSetup::complete_user($data);
     }
 

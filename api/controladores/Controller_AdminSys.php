@@ -172,7 +172,7 @@ class Controller_AdminSys
         return Util_HttpResponse::ok($logs);
     }
 
-    public static function get_logs_sql($data): Util_HttpResponse
+    public static function get_logs_sql(array $data): Util_HttpResponse
     {
         $logs = Model_Log::get_logs_sql();
 
@@ -190,5 +190,43 @@ class Controller_AdminSys
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta de peticiones sql");
 
         return Util_HttpResponse::ok($logs);
+    }
+
+    public static function get_data_user(array $data): Util_HttpResponse
+    {
+        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Controller_VerifyData::keys_exists(true, $data[json_user], json_ci);
+
+        $user_data = Model_User::get_user_data($data[json_user][json_ci]);
+        if (is_null($user_data)){
+            return Util_HttpResponse::error(http_internal_error);
+        }
+
+        return Util_HttpResponse::ok($user_data);
+    }
+
+    public static function delete_user(array $data): Util_HttpResponse
+    {
+        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Controller_VerifyData::keys_exists(true, $data[json_user], json_ci);
+        $ci = $data[json_user][json_ci];
+        
+        $a = Model_User::delete_user($ci);
+        if ($a == true){
+            return Util_HttpResponse::ok();
+        }
+        return Util_HttpResponse::error(http_bad_request);
+    }
+     public static function delete_user_request(array $data): Util_HttpResponse
+    {
+        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Controller_VerifyData::keys_exists(true, $data[json_user], json_ci);
+        $ci = $data[json_user][json_ci];
+        
+        $a = Model_User::delete_user_request($ci);
+        if ($a == true){
+            return Util_HttpResponse::ok();
+        }
+        return Util_HttpResponse::error(http_bad_request);
     }
 }

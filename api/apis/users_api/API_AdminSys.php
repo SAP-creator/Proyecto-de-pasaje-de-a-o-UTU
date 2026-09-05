@@ -8,7 +8,6 @@ include_once __DIR__ . "/../../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../../constantes/Const_Json.php";
 include_once __DIR__. "/../../constantes/Const_Path.php";
 
-include_once __DIR__ . "/../../controladores/Controller_VerifyData.php";
 include_once __DIR__ . "/../../controladores/Controller_UserSetup.php";
 include_once __DIR__ . "/../../controladores/Controller_Auth.php";
 include_once __DIR__ . "/../../controladores/Controller_Sign.php";
@@ -78,14 +77,26 @@ function get_options(string $route, array $data): Util_HttpResponse {
 
         case "/requests/exists": // Verifica si existe una solicitud de CI
             return Controller_AdminSys::has_request_user($data);
+        
+        case "/user/data/change": // Modifica datos del usuario
+            return Controller_UserChangeData::user_change_data_by_admin($data);
+        
+        case "/user/data": // consigue los datos de usuario en la base de datos
+            return Controller_AdminSys::get_data_user($data);
+        
+        case "/user/delete": // borrar usuario
+            return Controller_AdminSys::delete_user($data);
+
+        case "/user/request/delente":
+            return Controller_AdminSys::delete_user_request($data);
 
         case "/logs/user": // Logs de un usuario individual por su CI
             return Controller_AdminSys::get_logs_user($data);
 
         case "/logs/users": // Logs filtrados por tipo de usuario/log
             return Controller_AdminSys::get_logs_users($data);
-
-        case "/log/sql":
+        
+        case "/log/sql": // Consigue todo los logs de sql ordenados por fecha 
             return Controller_AdminSys::get_logs_sql($data);
 
         default:

@@ -1,9 +1,11 @@
 <?php
 
-include_once __DIR__ . "/../modelo/Model_UserSetup.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../controladores/Controller_VerifyData.php";
 include_once __DIR__ . "/../constantes/Const_Json.php";
+include_once __DIR__ . "/Controller_Auth.php";
+include_once __DIR__ . "/Controller_UserChangeData.php";
+
 
 
 class Controller_UserSetup {
@@ -17,8 +19,21 @@ class Controller_UserSetup {
         $user = $data[json_token][json_user];
 
         Controller_VerifyData::keys_exists(true, $user, json_ci);
+        
 
         $ci = $user[json_ci];
+
+        $complete = Model_User::user_is_complete($ci);
+
+        if ($complete == true){
+            return;
+        }
+        if (is_null($complete)){
+            Util_HttpResponse::error(http_internal_error)->send();
+            die;
+        }
+
+
 
         $is_complete = self::find_incomplete_data($data);
 
@@ -55,7 +70,7 @@ class Controller_UserSetup {
         $ci = (int) $user[json_ci];
         $typeuser = (string) $user[json_typeuser];
 
-        $complete_data = Model_UserSetup::find_incomplete_data($typeuser, $ci);
+        $complete_data = Model_User::find_incomplete_data($typeuser, $ci);
 
         if (!is_array($complete_data)) {
             return null;
@@ -83,77 +98,55 @@ class Controller_UserSetup {
     }
 
     public static function complete_user(array $data): Util_HttpResponse {
-        include_once __DIR__ . "/Controller_Auth.php";
 
-        Controller_VerifyData::keys_exists(true,$data,json_token);
+            Controller_VerifyData::keys_exists(true,$data,json_token);
 
-        if (Controller_Auth::comprobate_token($data,json_token) != true){
-            return Util_HttpResponse::error(http_forbidden, "No tienes un token valido");
-        }
-
-
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
-        $user = $data[json_token][json_user];
-        Controller_VerifyData::keys_exists(true, $user, json_ci);
-        $ci = (int) $user[json_ci];
-
-        // 2. Verificar datos faltantes a nivel general
-        $incomplete_data = self::find_incomplete_data($data, false);
-       
-
-        if (is_null($incomplete_data)) {
-            return Util_HttpResponse::error(http_internal_error, "error en la base de datos");
-        }
-
-        if (empty($incomplete_data)) {
-            return Util_HttpResponse::ok("Estan todos los datos completos");
-        }
-        
-        // 3. Volvemos a pedir los datos faltantes pero esta vez conservando "tabla__columna"
-        $TaC = self::find_incomplete_data($data, true); 
-        $separator = "__";
-        $cambios_realizados = 0;
-
-        foreach ($TaC as $key_completa) {
-            $p = strpos($key_completa, $separator);
-            if ($p === false) continue;
-
-            $table = substr($key_completa, 0, $p);
-            $column = substr($key_completa, $p + strlen($separator));
-
-            if (isset(self::traductor[$column])) {
-                
-                #era clave....
-                $json_key = self::traductor[$column];
-
-                if (isset($data[json_user][$json_key])) {
-                    $value = $data[json_user][$json_key];
-
-                    // Guardamos en la base de datos
-                    Model_User::change_data($ci, $table, $column, $value);
-                    $cambios_realizados++;
-                }
+            if (Controller_Auth::comprobate_token($data,json_token) != true){
+                return Util_HttpResponse::error(http_forbidden, "No tienes un token valido");
             }
-        }  
 
-        
-        if ($cambios_realizados > 0) {
-            $is_complete = self::find_incomplete_data($data);
-            $text = "ninguno";
-            Model_UserSetup::set_iscomplete_user(!empty($is_complete),$ci);
 
+            Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
+            $user = $data[json_token][json_user];
+            Controller_VerifyData::keys_exists(true, $user, json_ci);
+            $ci = (string) $user[json_ci];
             
-            if (!empty($is_complete))
-                $text = $is_complete;
-            
+            // Obtenemos el tipo de usuario necesario para la función update_user_data
+            $typeuser = $user[json_typeuser] ?? null;
+
+            if (!$typeuser) {
+                return Util_HttpResponse::error(http_bad_request, "Falta el tipo de usuario");
+            }
+
+            // 2. Verificar datos faltantes a nivel general
+            $incomplete_data = self::find_incomplete_data($data, false);
         
 
-            return Util_HttpResponse::ok("Datos actualizados correctamente. Procesados: $cambios_realizados", ["Datos restantes"=>$text]);
+            if (is_null($incomplete_data)) {
+                return Util_HttpResponse::error(http_internal_error, "error en la base de datos");
+            }
+
+            if (empty($incomplete_data)) {
+                return Util_HttpResponse::ok("Estan todos los datos completos");
+            }
+            
+            // Delegamos la actualización a la función booleana
+            $instancia_controlador = new self();
+            $exito = Controller_UserChangeData::process_update($ci, $typeuser, $user);
+
+            if ($exito) {
+                $is_complete = self::find_incomplete_data($data);
+                $text = "ninguno";
+                
+                if (!empty($is_complete)) {
+                    $text = $is_complete;
+                }
+
+                return Util_HttpResponse::ok("Datos actualizados correctamente.", ["Datos restantes" => $text]);
+            }
+
+            return Util_HttpResponse::error(http_bad_request, "Se enviaron datos innecesarios o falló la actualización.");
         }
-        return Util_HttpResponse::error(http_bad_request, "Se enviaron datos inesesarios."); // Envió datos pero ninguno de los que faltaban
-
-        
-    }
     const traductor = [
         sql_clave => json_password,
         sql_nombre => json_first_name,

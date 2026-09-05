@@ -216,14 +216,6 @@ class Model_User
 
     public static function change_data(int $ci, string $table, string $collum, mixed $new_value): ?bool
     {
-        if (! array_key_exists($table, self::permitted_tables)) {
-            return null;
-        }
-
-        if (! in_array($collum, self::permitted_tables[$table], true)) {
-            return null;
-        }
-
         if (self::has_user($ci) !== true) {
             return null;
         }
@@ -247,15 +239,256 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, $type . "i", $new_value, $ci);
+        self::set_complete_user($ci);
 
         return $result_query->success;
     }
 
-    const permitted_tables = [
-        sql_tabla_usuario => [sql_clave],
-        sql_tabla_trabajador => [sql_nombre,sql_apellido],
-        sql_tabla_muni_general => [],
-        sql_tabla_muni_operador => [],
-        sql_tabla_admin => []
+
+
+
+    ##estos sql solo de vuelven booleans
+    private const sql_user_complete = [
+        enum_tipo_vecino => null,
+        
+        enum_tipo_operario => "SELECT
+            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+        FROM usuario u 
+        LEFT JOIN trabajador t ON u.cedula = t.cedula 
+    
+        WHERE u.cedula = ?",
+        
+        enum_tipo_admin_operador => "SELECT
+            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+        FROM usuario u 
+        LEFT JOIN trabajador t ON u.cedula = t.cedula 
+        WHERE u.cedula = ?",
+        
+        enum_tipo_admin_general => "SELECT
+            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+        FROM usuario u 
+        LEFT JOIN trabajador t ON u.cedula = t.cedula 
+        WHERE u.cedula = ?",
+        
+        enum_tipo_admin_sistema => "SELECT
+         t.nombre,
+            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+        FROM usuario u 
+        LEFT JOIN trabajador t ON u.cedula = t.cedula 
+        WHERE u.cedula = ?"
     ];
+
+
+
+    ##funciones nuevas
+
+    #esta funcion modifica la columna datos completados del usuario dependiendo si tiene todos sus datos importantes ingresados.
+    private static function set_complete_user(int $ci)
+    {
+        
+        if (! self::has_user($ci)){
+            return;
+        }
+
+        
+        $db = new Util_DbConnection;
+
+        
+        
+        $user = Model_User::get_user($ci);
+
+        $typeuser = $user[sql_tipo];
+
+        if (! array_key_exists($typeuser,self::sql_user_complete)){
+            return;
+        }
+
+        $sql = self::sql_user_complete[$typeuser];
+
+        $result_query_user_com = $db->executeQuery($sql,"i",$ci);
+
+        if ($result_query_user_com->success != true){
+            return;
+        }
+        
+        $datos = $result_query_user_com->data->fetch_all(MYSQLI_ASSOC);
+
+        if (empty($datos)){
+            return;
+        }
+
+        
+
+        $completo = true;
+
+        foreach ($datos as $dato){
+            if ($dato == false){
+                $completo = false;
+                break;
+            }
+        }
+
+
+        $sql_complete = "UPDATE ".sql_usuario_completo." SET ".sql_tabla_usuario." = $completo WHERE ".sql_cedula." = ?";
+
+        
+        $db->executeQuery($sql_complete, "i", $ci);
+        
+        
+    }
+
+    public static function find_incomplete_data(string $typeuser, int $ci): bool|null|array
+    {
+
+
+        if (! in_array($typeuser, sql_usuario_tipo) )
+            {var_dump($typeuser, sql_usuario_tipo);
+            return null;}
+        
+        $sql = self::sql_user_complete[ $typeuser ];
+
+        if ($sql == null)
+            return true;
+
+        $db = new Util_DbConnection();
+
+        $result_query = $db->executeQuery( $sql, "i", $ci );
+
+        if ( $result_query->success != true )
+            {
+            return null;}
+        
+        $data = $result_query->data->fetch_assoc();
+
+        if ( $data == null )
+            {
+            return null;}
+
+        if ( empty($data) )
+            {
+            return true;}
+
+        return $data;
+    }
+
+    public static function user_is_complete(int $ci): ?bool
+    {
+        $sql = "SELECT datos_completados FROM usuario WHERE ci = ?";
+
+        $db = new Util_DbConnection();
+
+        $result_query = $db->executeQuery($sql, "i", $ci);
+
+        if ($result_query->success != true)
+            return null;
+        
+        $data = $result_query->data->fetch_assoc();
+
+        if ($data == null)
+            return null;
+
+        return (bool) $data;
+
+    }
+
+  
+    public static function get_user_data(int $ci): ?array
+    {
+        $user_base = self::get_user($ci);
+
+        if (!$user_base) {
+            return null;
+        }
+
+        $typeuser = $user_base[sql_tipo] ?? null;
+
+        $joins_by_type = [
+            enum_tipo_vecino => [
+                sql_tabla_vecino
+            ],
+            enum_tipo_operario => [
+                sql_tabla_trabajador,
+                sql_tabla_operador
+            ],
+            enum_tipo_admin_operador => [
+                sql_tabla_trabajador,
+                sql_tabla_muni_operador
+            ],
+            enum_tipo_admin_general => [
+                sql_tabla_trabajador,
+                sql_tabla_muni_general
+            ],
+            enum_tipo_admin_sistema => [
+                sql_tabla_trabajador,
+                sql_tabla_admin
+            ]
+        ];
+
+        $tables_to_join = $joins_by_type[$typeuser] ?? [];
+
+        $sql = "SELECT u.cedula, u.tipo, u.datos_completados";
+        $joins_sql = "";
+
+        foreach ($tables_to_join as $index => $tabla) {
+            $alias = "t" . ($index + 1);
+            $sql .= ", {$alias}.*";
+            $joins_sql .= " LEFT JOIN {$tabla} {$alias} ON u.cedula = {$alias}.cedula";
+        }
+
+        $sql .= " FROM " . sql_tabla_usuario . " u{$joins_sql} WHERE u.cedula = ?";
+
+        // 4. Ejecutar la consulta
+        $db = new Util_DbConnection();
+        $query_result = $db->executeQuery($sql, "i", $ci);
+
+        Model_Log::add_log_sql(self::model_log, "Consulta administrativa de datos completos para CI: {$ci}");
+
+        if (!$query_result->success) {
+            return null;
+        }
+
+        $data = $query_result->data->fetch_assoc();
+
+        if (!$data) {
+            return null;
+        }
+
+        unset($data['clave']); 
+
+        return $data;
+    }
+
+    public static function delete_user($ci): ?bool
+    {
+        if (! self::has_user($ci)){
+            return null;
+        }
+
+        $sql = "DELETE FROM ".sql_tabla_usuario." WHERE `".sql_cedula."` = ?";
+
+        $db = new Util_DbConnection();
+
+        $result_query = $db->executeQuery($sql,"i",$ci);
+
+        return  $result_query->success;
+    }
+
+    public static function delete_user_request($ci): ?bool
+    {
+        if (! self::has_user($ci)){
+            return null;
+        }
+
+        $sql = "DELETE FROM ".sql_tabla_soli_usuario." WHERE ".sql_cedula." = ?";
+
+        $db = new Util_DbConnection();
+
+        $result_query = $db->executeQuery($sql,"i",$ci);
+
+        return  $result_query->success;
+    }
 }

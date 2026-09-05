@@ -5,14 +5,14 @@ CREATE TABLE usuario (
     cedula INT(9) NOT NULL,
     datos_completados BOOLEAN NOT NULL,
     clave text(255),
-    tipo ENUM('vecino', 'operario', 'admin operador','admin general', 'admin sistema'),
+    tipo ENUM('vecino', 'operador camion', 'admin operador','admin planificador', 'admin sistema'),
     PRIMARY KEY (cedula)
 );
 
 CREATE TABLE solicitud_usuario (
     cedula INT(9) NOT NULL,
     clave text(255),
-    tipo ENUM('vecino', 'operario', 'admin operador','admin general', 'admin sistema'),
+    tipo ENUM('vecino', 'operador camion', 'admin operador','admin planificador', 'admin sistema'),
     PRIMARY KEY (cedula)
 );
 
@@ -24,7 +24,7 @@ CREATE TABLE trabajador (
     FOREIGN KEY (cedula) REFERENCES usuario(cedula) ON DELETE CASCADE
 );
 
-CREATE TABLE vecino (
+CREATE TABLE vecino ( 
     cedula INT(9) NOT NULL,
     PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES usuario(cedula) ON DELETE CASCADE
@@ -36,7 +36,7 @@ CREATE TABLE admin_sistemas (
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
 
-CREATE TABLE operador (
+CREATE TABLE operador_camion (
     cedula INT(9) NOT NULL,
     PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
@@ -48,7 +48,7 @@ CREATE TABLE admin_municipal_operador (
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
 
-CREATE TABLE admin_municipal_general (
+CREATE TABLE admin_municipal_planificador (
     cedula INT(9) NOT NULL,
     PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
@@ -72,8 +72,8 @@ CREATE TABLE log_sql (
 CREATE TABLE incidente (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tipo_incidente ENUM('Grave', 'Moderado', 'Leve'),
-    cedula_vecino INT(9),
-    FOREIGN KEY (cedula_vecino) REFERENCES vecino(cedula)
+    id_contenedor INT(9),
+    FOREIGN KEY (id_contenedor) REFERENCES contenedor(id)
 );
 
 CREATE TABLE mes_llenado (
