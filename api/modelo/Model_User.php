@@ -220,6 +220,7 @@ class Model_User
             return null;
         }
 
+
         $sql = "UPDATE " . $table . "
                 SET " . $collum . " = ?
                 WHERE " . sql_cedula . " = ?";
@@ -252,31 +253,30 @@ class Model_User
         enum_tipo_vecino => null,
         
         enum_tipo_operario => "SELECT
-            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
         FROM usuario u 
         LEFT JOIN trabajador t ON u.cedula = t.cedula 
     
         WHERE u.cedula = ?",
         
         enum_tipo_admin_operador => "SELECT
-            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
         FROM usuario u 
         LEFT JOIN trabajador t ON u.cedula = t.cedula 
         WHERE u.cedula = ?",
         
         enum_tipo_admin_general => "SELECT
-            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
         FROM usuario u 
         LEFT JOIN trabajador t ON u.cedula = t.cedula 
         WHERE u.cedula = ?",
         
         enum_tipo_admin_sistema => "SELECT
-         t.nombre,
-            IF(t.nombre IS NULL, FALSE, TRUE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, FALSE, TRUE) AS trabajador__apellido
+            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
+            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
         FROM usuario u 
         LEFT JOIN trabajador t ON u.cedula = t.cedula 
         WHERE u.cedula = ?"
@@ -287,58 +287,57 @@ class Model_User
     ##funciones nuevas
 
     #esta funcion modifica la columna datos completados del usuario dependiendo si tiene todos sus datos importantes ingresados.
-    private static function set_complete_user(int $ci)
+    private static function set_complete_user(int $ci): void
     {
-        
-        if (! self::has_user($ci)){
+        if (!self::has_user($ci)) {
             return;
         }
 
-        
-        $db = new Util_DbConnection;
+        $db = new Util_DbConnection();
 
-        
-        
         $user = Model_User::get_user($ci);
+        if (!$user) {
+            return;
+        }
 
-        $typeuser = $user[sql_tipo];
+        $typeuser = $user[sql_tipo] ?? null;
 
-        if (! array_key_exists($typeuser,self::sql_user_complete)){
+        if (!array_key_exists($typeuser, self::sql_user_complete) || self::sql_user_complete[$typeuser] === null) {
             return;
         }
 
         $sql = self::sql_user_complete[$typeuser];
 
-        $result_query_user_com = $db->executeQuery($sql,"i",$ci);
+        $result_query_user_com = $db->executeQuery($sql, "i", $ci);
 
-        if ($result_query_user_com->success != true){
-            return;
-        }
-        
-        $datos = $result_query_user_com->data->fetch_all(MYSQLI_ASSOC);
-
-        if (empty($datos)){
+        if ($result_query_user_com->success != true) {
             return;
         }
 
-        
+        // fetch_assoc obtiene la primera fila directamente como array [columna => valor]
+        $data = $result_query_user_com->data->fetch_assoc();
+
+        if (empty($data)) {
+            return;
+        }
 
         $completo = true;
-
-        foreach ($datos as $dato){
-            if ($dato == false){
+        foreach ($data as $columna => $valor_bool) {
+            // En tus SQL de consulta usas IF(col IS NULL, FALSE, TRUE)
+            // Por lo tanto, si alguna columna devuelve 0 / false, el usuario está incompleto
+            if ($valor_bool) {
                 $completo = false;
                 break;
             }
         }
 
+        // Convertimos el booleano a entero (1 o 0) para MySQL
+        $val_completo = $completo ? 1 : 0;
 
-        $sql_complete = "UPDATE ".sql_usuario_completo." SET ".sql_tabla_usuario." = $completo WHERE ".sql_cedula." = ?";
-
+        $sql_complete = "UPDATE " . sql_tabla_usuario . " SET " . sql_usuario_completo . " = ? WHERE " . sql_cedula . " = ?";
         
-        $db->executeQuery($sql_complete, "i", $ci);
-        
-        
+        // Pasamos dos enteros: el estado completado (1/0) y la cédula ($ci)
+        $db->executeQuery($sql_complete, "ii", $val_completo, $ci);
     }
 
     public static function find_incomplete_data(string $typeuser, int $ci): bool|null|array
@@ -346,11 +345,9 @@ class Model_User
 
 
         if (! in_array($typeuser, sql_usuario_tipo) )
-            {var_dump($typeuser, sql_usuario_tipo);
-            return null;}
+            return null;
         
         $sql = self::sql_user_complete[ $typeuser ];
-
         if ($sql == null)
             return true;
 
@@ -363,7 +360,6 @@ class Model_User
             return null;}
         
         $data = $result_query->data->fetch_assoc();
-
         if ( $data == null )
             {
             return null;}
@@ -377,7 +373,7 @@ class Model_User
 
     public static function user_is_complete(int $ci): ?bool
     {
-        $sql = "SELECT datos_completados FROM usuario WHERE ci = ?";
+        $sql = "SELECT ".sql_usuario_completo." FROM ".sql_tabla_usuario." WHERE ".sql_cedula." = ?";
 
         $db = new Util_DbConnection();
 
@@ -390,8 +386,7 @@ class Model_User
 
         if ($data == null)
             return null;
-
-        return (bool) $data;
+        return (bool) $data["datos_completados"];
 
     }
 
@@ -462,7 +457,7 @@ class Model_User
         return $data;
     }
 
-    public static function delete_user($ci): ?bool
+    public static function delete_user(int $ci): ?bool
     {
         if (! self::has_user($ci)){
             return null;
@@ -477,7 +472,7 @@ class Model_User
         return  $result_query->success;
     }
 
-    public static function delete_user_request($ci): ?bool
+    public static function delete_user_request(int $ci): ?bool
     {
         if (! self::has_user($ci)){
             return null;

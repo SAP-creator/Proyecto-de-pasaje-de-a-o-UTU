@@ -1,10 +1,11 @@
 <?php
 
-
 include_once __DIR__ . "/../../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../controladores/Controller_VerifyData.php";
 include_once __DIR__ . "/../../controladores/Controller_UserSetup.php";
+include_once __DIR__ . "/../../controladores/Controller_UserChangeData.php";
+include_once __DIR__ . "/../../controladores/Controller_Sign.php";
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -18,53 +19,59 @@ $route = str_replace(path_api_user, '', $original_route);
 if (strlen($route) === 0 || $route[0] !== '/') {
     $route = '/' . $route;
 }
-$data = json_decode(file_get_contents("php://input"), true);
+
+// Lectura de body JSON
+$input_raw = file_get_contents("php://input");
+$data = json_decode($input_raw, true) ?? [];
+
+// Validar estructura JSON únicamente si el método requiere un body obligatorio
+if (!is_array($data) && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+    Util_HttpResponse::error(http_bad_request, "No puede hacer esta petición sin un JSON válido en el body")->send();
+    exit();
+}
+
+// Unificar parámetros en caso de enviarse por querystring
+if (!empty($_GET)) {
+    $data = array_merge($data, $_GET);
+}
 
 process_http_request($method, $route, $data);
 
-function process_http_request(string $method, string $route, ?array $data) {
-   
-    switch ($method) {
-        case "POST":
-            if (!is_array($data)) {
-                $response = Util_HttpResponse::error(http_bad_request,"No puede hacer una peticion POST sin json en body");
-                break;
-            }
-            $response = handle_post($route, $data);
-            break;
-
-        case "OPTIONS":
-            $response = Util_HttpResponse::ok(json_decode(file_get_contents("opciones user.json")));
-            break;
-
-        default:
-            $response = Util_HttpResponse::error(http_bad_request, "Metodo {$method} no permitido");
-            break;
-    }
+function process_http_request(string $method, string $route, array $data) {
+    $response = match ($method) {
+        "POST"    => handle_post($route, $data),
+        "PUT"     => handle_put($route, $data),
+        "OPTIONS" => Util_HttpResponse::ok(json_decode(file_get_contents("opciones user.json"), true) ?? []),
+        default   => Util_HttpResponse::error(http_bad_request, "Método {$method} no permitido en esta ruta")
+    };
     
     $response->send();
 }
 
-function handle_post(string $route_option, array $data): Util_HttpResponse {
-   
-    include_once __DIR__ . "/../../controladores/Controller_Sign.php";
+function handle_post(string $route, array $data): Util_HttpResponse {
     Controller_VerifyData::keys_exists(true, $data, json_user);
 
-    switch ($route_option) {
+    switch ($route) {
         case "/sign/in":
             return Controller_Sign::sign_in($data);
 
         case "/sign/up":
             return Controller_Sign::sign_up($data);
 
-        case "/complete":
-            return Controller_UserSetup::complete_user($data);
+        default:
+            return Util_HttpResponse::error(http_not_found, "Ruta \"{$route}\" no encontrada en POST");
     }
+}
 
+function handle_put(string $route, array $data): Util_HttpResponse {
+    switch ($route) {
+        case "/profile": // Usa Controller_UserChangeData::user_change_data_by_user
+            return Controller_UserChangeData::user_change_data_by_user($data);
 
+        case "/complete": // Completa la configuración/datos del usuario
+            return Controller_UserSetup::complete_user($data);
 
-    return Util_HttpResponse::error( 
-        http_bad_request,
-        "No existe la opcion {$route_option}. Por favor revise nuevamente enviando un HTTP OPTIONS a /api/users",
-    );
+        default:
+            return Util_HttpResponse::error(http_not_found, "Ruta \"{$route}\" no encontrada en PUT");
+    }
 }

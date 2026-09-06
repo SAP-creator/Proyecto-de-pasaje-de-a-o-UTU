@@ -66,12 +66,13 @@ class Controller_AdminSys
 
     public static function has_user(array $data): Util_HttpResponse
     {
-        if (!Controller_VerifyData::keys_exists(true, $data, json_ci)) {
-            return Util_HttpResponse::error(http_unprocessable_entity,"Falta el parámetro cédula");
-        }
+        
+        Controller_VerifyData::keys_exists(true, $data, json_user);
+        $user = $data[json_user];
+        Controller_VerifyData::keys_exists(true,$user, json_ci);
 
-        $ci = (int)$data[json_ci];
-        $type = Controller_VerifyData::keys_exists(false, $data, json_typeuser) ? $data[json_typeuser] : "";
+        $ci = (int)$user[json_ci];
+        $type = Controller_VerifyData::keys_exists(false, $user, json_typeuser) ? $user[json_typeuser] : "";
 
         $exists = Model_User::has_user($ci, $type);
 
@@ -94,12 +95,13 @@ class Controller_AdminSys
 
     public static function has_request_user(array $data): Util_HttpResponse
     {
-        if (!Controller_VerifyData::keys_exists(true, $data, json_ci)) {
-            return Util_HttpResponse::error("Falta el parámetro cédula", http_bad_request);
-        }
+        Controller_VerifyData::keys_exists(true, $data, json_user);
+        $user = $data[json_user];
+        Controller_VerifyData::keys_exists(true, $user, json_ci);
+            
 
-        $ci = (int)$data[json_ci];
-        $type = Controller_VerifyData::keys_exists(false, $data, json_typeuser) ? $data[json_typeuser] : "";
+        $ci = (int)$user[json_ci];
+        $type = Controller_VerifyData::keys_exists(false, $user, json_typeuser) ? $user[json_typeuser] : "";
 
         $exists = Model_User::has_request_user($ci, $type);
 
@@ -122,12 +124,12 @@ class Controller_AdminSys
 
     public static function get_logs_user(array $data): Util_HttpResponse
     {
-        if (!Controller_VerifyData::keys_exists(true, $data, json_ci)) {
-            return Util_HttpResponse::error(http_bad_request,"Falta la cédula del usuario a consultar");
-        }
+        Controller_VerifyData::keys_exists(true, $data, json_user);
+        $user = $data[json_user];
+        Controller_VerifyData::keys_exists(true,$user,json_ci);
         
-        $ci = (int)$data[json_ci];
-        $type_log = Controller_VerifyData::keys_exists(false, $data, json_typelog) ? $data[json_typelog] : "";
+        $ci = (int)$data[json_user][json_ci];
+        $type_log = Controller_VerifyData::keys_exists(false, $user, json_typelog) ? $user[json_typelog] : "";
 
         $logs = Model_Log::get_logs_user($ci, $type_log);
 
@@ -136,10 +138,10 @@ class Controller_AdminSys
         }
 
         Controller_VerifyData::keys_exists(true, $data, json_token);
-
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
+        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
+        Controller_VerifyData::keys_exists(true, $data[json_token][json_user], json_ci);
         
-        $ci_admin = $data[json_token][json_ci];
+        $ci_admin = $data[json_token][json_user][json_ci];
 
 
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta el historial de logs del usuario CI: {$ci}");
@@ -160,10 +162,10 @@ class Controller_AdminSys
         }
 
         Controller_VerifyData::keys_exists(true, $data, json_token);
+        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
+        Controller_VerifyData::keys_exists(true, $data[json_token][json_user], json_ci);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
-        
-        $ci_admin = $data[json_token][json_ci];
+        $ci_admin = $data[json_token][json_user][json_ci];
 
 
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta logs globales de usuarios filtrados por tipo: '{$type_user}'");
@@ -182,9 +184,10 @@ class Controller_AdminSys
         
         Controller_VerifyData::keys_exists(true, $data, json_token);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
+        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
+        Controller_VerifyData::keys_exists(true, $data[json_token][json_user], json_ci);
         
-        $ci_admin = $data[json_token][json_ci];
+        $ci_admin = $data[json_token][json_user][json_ci];
 
 
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta de peticiones sql");
