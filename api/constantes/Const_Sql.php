@@ -9,6 +9,14 @@ const sql_tipo = "tipo";
 const sql_nombre = "nombre";
 const sql_apellido = "apellido";
 
+// Columnas específicas para Logs
+const sql_id = "id";
+const sql_fecha = "fecha";
+const sql_cedula_usuario = "cedula_usuario";
+const sql_tipo_log = "tipo_log";
+const sql_tipo_modelo = "tipo_modelo";
+const sql_texto = "texto";
+
 // 2. Nombres de las TABLAS en la BD
 const sql_tabla_usuario = "usuario";
 const sql_tabla_trabajador = "trabajador";
@@ -18,6 +26,10 @@ const sql_tabla_operador = "operador_camion";
 const sql_tabla_admin = "admin_sistemas";
 const sql_tabla_muni_operador = "admin_municipal_operador";
 const sql_tabla_muni_general = "admin_municipal_general";
+
+// Tablas de Logs
+const sql_tabla_log_user = "log_user";
+const sql_tabla_log_sql = "log_sql";
 
 // 3. Valores permitidos para el ENUM 'tipo'
 const enum_tipo_vecino = "vecino";

@@ -1,30 +1,29 @@
 <?php
+
 include_once __DIR__ . "/../constantes/Const_Sql.php";
 include_once __DIR__ . "/../utils/Util_DbConnection.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 
 class Model_User
 {
-    private const model_log = "USER MODEL";
-
+    private const MODEL_LOG = "USER MODEL";
 
     public static function get_users(string $type = ""): ?array
     {
         $db = new Util_DbConnection();
 
-        
         if (empty($type)) {
-            $sql = "SELECT * FROM " . sql_tabla_usuario;
+            $sql = "SELECT u." . sql_cedula . ", u." . sql_tipo . " FROM " . sql_tabla_usuario . " u";
             $query_result = $db->executeQuery($sql); 
-            Model_Log::add_log_sql(self::model_log, "Obtener todos los usuarios");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener todos los usuarios");
         } else {
             if (!in_array($type, sql_usuario_tipo)) {
                 return null; 
             }
 
-            $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE tipo = ?";
+            $sql = "SELECT u." . sql_cedula . ", u." . sql_tipo . " FROM " . sql_tabla_usuario . " u WHERE u." . sql_tipo . " = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
-            Model_Log::add_log_sql(self::model_log, "Obtener usuarios filtrados por tipo: {$type}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener usuarios filtrados por tipo: {$type}");
         }
 
         if (!$query_result->success) {
@@ -39,17 +38,17 @@ class Model_User
         $db = new Util_DbConnection();
 
         if (empty($type)) {
-            $sql = "SELECT * FROM " . sql_tabla_soli_usuario;
+            $sql = "SELECT s." . sql_cedula . ", s." . sql_tipo . " FROM " . sql_tabla_soli_usuario . " s";
             $query_result = $db->executeQuery($sql); 
-            Model_Log::add_log_sql(self::model_log, "Obtener todas las solicitudes de usuarios");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener todas las solicitudes de usuarios");
         } else {
             if (!in_array($type, sql_usuario_tipo)) {
                 return null; 
             }
 
-            $sql = "SELECT * FROM " . sql_tabla_soli_usuario . " WHERE tipo = ?";
+            $sql = "SELECT s." . sql_cedula . ", s." . sql_tipo . " FROM " . sql_tabla_soli_usuario . " s WHERE s." . sql_tipo . " = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
-            Model_Log::add_log_sql(self::model_log, "Obtener solicitudes filtradas por tipo: {$type}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener solicitudes filtradas por tipo: {$type}");
         }
 
         if (!$query_result->success) {
@@ -61,27 +60,31 @@ class Model_User
 
     public static function get_user(int $ci): ?array 
     {
-        $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE cedula = ?";
+        $sql = "SELECT * FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ?";
         
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
         
-        Model_Log::add_log_sql(self::model_log, "Consultar usuario por cédula: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consultar usuario por cédula: {$ci}");
         
-        if (!$query_result->success) { return null; }
+        if (!$query_result->success) { 
+            return null; 
+        }
 
         return $query_result->data->fetch_assoc(); 
     }
 
     public static function get_request_user(int $ci): ?array
     {
-        $sql = "SELECT * FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
+        $sql = "SELECT * FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ?";
         
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::model_log, "Consultar solicitud por cédula: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consultar solicitud por cédula: {$ci}");
 
-        if (!$query_result->success) { return null; }
+        if (!$query_result->success) { 
+            return null; 
+        }
 
         return $query_result->data->fetch_assoc(); 
     }
@@ -91,11 +94,13 @@ class Model_User
         $db = new Util_DbConnection();
 
         if (empty($type)) {
-            $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE cedula = ?";
+            $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
-            Model_Log::add_log_sql(self::model_log, "Verificar existencia de usuario CI: {$ci}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de usuario CI: {$ci}");
 
-            if (!$query_result->success) { return null; }
+            if (!$query_result->success) { 
+                return null; 
+            }
             return $query_result->data->num_rows > 0;
         }
 
@@ -103,11 +108,13 @@ class Model_User
             return null;
         }
 
-        $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE cedula = ? AND tipo = ?";
+        $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ? AND " . sql_tipo . " = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
-        Model_Log::add_log_sql(self::model_log, "Verificar existencia de usuario CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de usuario CI: {$ci} con tipo: {$type}");
 
-        if (!$query_result->success) { return null; }
+        if (!$query_result->success) { 
+            return null; 
+        }
         return $query_result->data->num_rows > 0;
     }
 
@@ -116,11 +123,13 @@ class Model_User
         $db = new Util_DbConnection();
 
         if (empty($type)) {
-            $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
+            $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
-            Model_Log::add_log_sql(self::model_log, "Verificar existencia de solicitud CI: {$ci}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de solicitud CI: {$ci}");
 
-            if (!$query_result->success) { return null; }
+            if (!$query_result->success) { 
+                return null; 
+            }
             return $query_result->data->num_rows > 0;
         }
 
@@ -128,23 +137,55 @@ class Model_User
             return null;
         }
 
-        $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE cedula = ? AND tipo = ?";
+        $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ? AND " . sql_tipo . " = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
-        Model_Log::add_log_sql(self::model_log, "Verificar existencia de solicitud CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de solicitud CI: {$ci} con tipo: {$type}");
 
-        if (!$query_result->success) { return null; }
+        if (!$query_result->success) { 
+            return null; 
+        }
         return $query_result->data->num_rows > 0;
     }
 
     public static function create_request_user(int $ci, string $clave, string $type): ?bool
     {
-        $sql = "INSERT INTO ". sql_tabla_soli_usuario . " (cedula, clave, tipo) VALUES (?, ?, ?)";
+        $sql = "INSERT INTO " . sql_tabla_soli_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ") VALUES (?, ?, ?)";
         $db = new Util_DbConnection();
         $result = $db->executeQuery($sql, "iss", $ci, $clave, $type);
         
-        Model_Log::add_log_sql(self::model_log, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}");
 
         return $result->success;
+    }
+
+    private static function get_accept_user_queries(): array
+    {
+        return [
+            enum_tipo_vecino => [
+                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_vecino . "', true)",
+                "INSERT INTO " . sql_tabla_vecino . " (" . sql_cedula . ") VALUES (?)"
+            ],
+            enum_tipo_operario => [
+                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_operario . "', false)",
+                "INSERT INTO " . sql_tabla_trabajador . " (" . sql_cedula . ") VALUES (?)",
+                "INSERT INTO " . sql_tabla_operador . " (" . sql_cedula . ") VALUES (?)"
+            ],
+            enum_tipo_admin_operador => [
+                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_admin_operador . "', false)",
+                "INSERT INTO " . sql_tabla_trabajador . " (" . sql_cedula . ") VALUES (?)",
+                "INSERT INTO " . sql_tabla_muni_operador . " (" . sql_cedula . ") VALUES (?)"
+            ],
+            enum_tipo_admin_general => [
+                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_admin_general . "', false)",
+                "INSERT INTO " . sql_tabla_trabajador . " (" . sql_cedula . ") VALUES (?)",
+                "INSERT INTO " . sql_tabla_muni_general . " (" . sql_cedula . ") VALUES (?)"
+            ],
+            enum_tipo_admin_sistema => [
+                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_admin_sistema . "', false)",
+                "INSERT INTO " . sql_tabla_trabajador . " (" . sql_cedula . ") VALUES (?)",
+                "INSERT INTO " . sql_tabla_admin . " (" . sql_cedula . ") VALUES (?)"
+            ]
+        ];
     }
 
     public static function accept_request_user(int $ci): ?bool
@@ -161,15 +202,16 @@ class Model_User
 
         $tipo = $user_request[sql_tipo];
         $clave = $user_request[sql_clave];
+        $accept_queries = self::get_accept_user_queries();
         
-        if (!array_key_exists($tipo, self::sql_accept_user)) {
+        if (!array_key_exists($tipo, $accept_queries)) {
             return false;
         }
 
         $db = new Util_DbConnection();
 
-        foreach (self::sql_accept_user[$tipo] as $sql) {
-            $result = str_contains($sql, "usuario") 
+        foreach ($accept_queries[$tipo] as $sql) {
+            $result = str_contains($sql, sql_tabla_usuario) 
                 ? $db->executeQuery($sql, "is", $ci, $clave)
                 : $db->executeQuery($sql, "i", $ci);
 
@@ -178,51 +220,22 @@ class Model_User
             }
         }
 
-        $sql_delete = "DELETE FROM " . sql_tabla_soli_usuario . " WHERE cedula = ?";
+        $sql_delete = "DELETE FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ?";
         $result_delete = $db->executeQuery($sql_delete, "i", $ci);
 
-        Model_Log::add_log_sql(self::model_log, "Solicitud aceptada y usuario migrado CI: {$ci} como tipo: {$tipo}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Solicitud aceptada y usuario migrado CI: {$ci} como tipo: {$tipo}");
 
         return $result_delete->success;
     }
 
-    private const sql_accept_user = [
-        enum_tipo_vecino => [
-            "INSERT INTO ".sql_tabla_usuario." (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_vecino."', true)",
-            "INSERT INTO ".enum_tipo_vecino." (cedula) VALUES (?)"
-        ],
-        enum_tipo_operario => [
-            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_operario."', false)",
-            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
-            "INSERT INTO ".sql_tabla_operador." (cedula) VALUES (?)"
-        ],
-        enum_tipo_admin_operador => [
-            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_admin_operador."', false)",
-            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
-            "INSERT INTO ".sql_tabla_muni_operador." (cedula) VALUES (?)"
-        ],
-        enum_tipo_admin_general => [
-            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_admin_general."', false)",
-            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
-            "INSERT INTO ".sql_tabla_muni_general." (cedula) VALUES (?)"
-        ],
-        enum_tipo_admin_sistema => [
-            "INSERT INTO ".sql_tabla_usuario."  (cedula, clave, tipo, datos_completados) VALUES (?, ?, '".enum_tipo_admin_sistema."', false)",
-            "INSERT INTO ".sql_tabla_trabajador." (cedula) VALUES (?)",
-            "INSERT INTO ".sql_tabla_admin." (cedula) VALUES (?)"
-        ]
-    ];
-
-
-    public static function change_data(int $ci, string $table, string $collum, mixed $new_value): ?bool
+    public static function change_data(int $ci, string $table, string $column, mixed $new_value): ?bool
     {
         if (self::has_user($ci) !== true) {
             return null;
         }
 
-
         $sql = "UPDATE " . $table . "
-                SET " . $collum . " = ?
+                SET " . $column . " = ?
                 WHERE " . sql_cedula . " = ?";
 
         $type = "";
@@ -240,53 +253,31 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, $type . "i", $new_value, $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Actualizar campo '{$column}' en la tabla '{$table}' para la CI: {$ci}");
+
         self::set_complete_user($ci);
 
         return $result_query->success;
     }
 
+    private static function get_user_complete_queries(): array
+    {
+        $worker_select = "SELECT
+            IF(t." . sql_nombre . " IS NULL, TRUE, FALSE) AS trabajador__" . sql_nombre . ",
+            IF(t." . sql_apellido . " IS NULL, TRUE, FALSE) AS trabajador__" . sql_apellido . "
+        FROM " . sql_tabla_usuario . " u 
+        LEFT JOIN " . sql_tabla_trabajador . " t ON u." . sql_cedula . " = t." . sql_cedula . " 
+        WHERE u." . sql_cedula . " = ?";
 
+        return [
+            enum_tipo_vecino => null,
+            enum_tipo_operario => $worker_select,
+            enum_tipo_admin_operador => $worker_select,
+            enum_tipo_admin_general => $worker_select,
+            enum_tipo_admin_sistema => $worker_select
+        ];
+    }
 
-
-    ##estos sql solo de vuelven booleans
-    private const sql_user_complete = [
-        enum_tipo_vecino => null,
-        
-        enum_tipo_operario => "SELECT
-            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
-        FROM usuario u 
-        LEFT JOIN trabajador t ON u.cedula = t.cedula 
-    
-        WHERE u.cedula = ?",
-        
-        enum_tipo_admin_operador => "SELECT
-            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
-        FROM usuario u 
-        LEFT JOIN trabajador t ON u.cedula = t.cedula 
-        WHERE u.cedula = ?",
-        
-        enum_tipo_admin_general => "SELECT
-            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
-        FROM usuario u 
-        LEFT JOIN trabajador t ON u.cedula = t.cedula 
-        WHERE u.cedula = ?",
-        
-        enum_tipo_admin_sistema => "SELECT
-            IF(t.nombre IS NULL, TRUE, FALSE) AS trabajador__nombre,
-            IF(t.apellido IS NULL, TRUE, FALSE) AS trabajador__apellido
-        FROM usuario u 
-        LEFT JOIN trabajador t ON u.cedula = t.cedula 
-        WHERE u.cedula = ?"
-    ];
-
-
-
-    ##funciones nuevas
-
-    #esta funcion modifica la columna datos completados del usuario dependiendo si tiene todos sus datos importantes ingresados.
     private static function set_complete_user(int $ci): void
     {
         if (!self::has_user($ci)) {
@@ -301,20 +292,21 @@ class Model_User
         }
 
         $typeuser = $user[sql_tipo] ?? null;
+        $complete_queries = self::get_user_complete_queries();
 
-        if (!array_key_exists($typeuser, self::sql_user_complete) || self::sql_user_complete[$typeuser] === null) {
+        if (!array_key_exists($typeuser, $complete_queries) || $complete_queries[$typeuser] === null) {
             return;
         }
 
-        $sql = self::sql_user_complete[$typeuser];
+        $sql = $complete_queries[$typeuser];
 
         $result_query_user_com = $db->executeQuery($sql, "i", $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Evaluación interna de estado completo para CI: {$ci}");
 
         if ($result_query_user_com->success != true) {
             return;
         }
 
-        // fetch_assoc obtiene la primera fila directamente como array [columna => valor]
         $data = $result_query_user_com->data->fetch_assoc();
 
         if (empty($data)) {
@@ -323,74 +315,76 @@ class Model_User
 
         $completo = true;
         foreach ($data as $columna => $valor_bool) {
-            // En tus SQL de consulta usas IF(col IS NULL, FALSE, TRUE)
-            // Por lo tanto, si alguna columna devuelve 0 / false, el usuario está incompleto
             if ($valor_bool) {
                 $completo = false;
                 break;
             }
         }
 
-        // Convertimos el booleano a entero (1 o 0) para MySQL
         $val_completo = $completo ? 1 : 0;
 
         $sql_complete = "UPDATE " . sql_tabla_usuario . " SET " . sql_usuario_completo . " = ? WHERE " . sql_cedula . " = ?";
         
-        // Pasamos dos enteros: el estado completado (1/0) y la cédula ($ci)
         $db->executeQuery($sql_complete, "ii", $val_completo, $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Estado de perfil completo actualizado a ({$val_completo}) para CI: {$ci}");
     }
 
     public static function find_incomplete_data(string $typeuser, int $ci): bool|null|array
     {
-
-
-        if (! in_array($typeuser, sql_usuario_tipo) )
+        if (!in_array($typeuser, sql_usuario_tipo)) {
             return null;
+        }
         
-        $sql = self::sql_user_complete[ $typeuser ];
-        if ($sql == null)
+        $complete_queries = self::get_user_complete_queries();
+        $sql = $complete_queries[$typeuser] ?? null;
+
+        if ($sql == null) {
             return true;
+        }
 
         $db = new Util_DbConnection();
 
-        $result_query = $db->executeQuery( $sql, "i", $ci );
+        $result_query = $db->executeQuery($sql, "i", $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta de datos incompletos del usuario CI: {$ci} con tipo: {$typeuser}");
 
-        if ( $result_query->success != true )
-            {
-            return null;}
+        if ($result_query->success != true) {
+            return null;
+        }
         
         $data = $result_query->data->fetch_assoc();
-        if ( $data == null )
-            {
-            return null;}
+        if ($data == null) {
+            return null;
+        }
 
-        if ( empty($data) )
-            {
-            return true;}
+        if (empty($data)) {
+            return true;
+        }
 
         return $data;
     }
 
     public static function user_is_complete(int $ci): ?bool
     {
-        $sql = "SELECT ".sql_usuario_completo." FROM ".sql_tabla_usuario." WHERE ".sql_cedula." = ?";
+        $sql = "SELECT " . sql_usuario_completo . " FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ?";
 
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, "i", $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta de indicador de usuario completo para CI: {$ci}");
 
-        if ($result_query->success != true)
+        if ($result_query->success != true) {
             return null;
+        }
         
         $data = $result_query->data->fetch_assoc();
 
-        if ($data == null)
+        if ($data == null) {
             return null;
-        return (bool) $data["datos_completados"];
+        }
 
+        return (bool) $data[sql_usuario_completo];
     }
 
-  
     public static function get_user_data(int $ci): ?array
     {
         $user_base = self::get_user($ci);
@@ -425,22 +419,21 @@ class Model_User
 
         $tables_to_join = $joins_by_type[$typeuser] ?? [];
 
-        $sql = "SELECT u.cedula, u.tipo, u.datos_completados";
+        $sql = "SELECT u." . sql_cedula . ", u." . sql_tipo . ", u." . sql_usuario_completo;
         $joins_sql = "";
 
         foreach ($tables_to_join as $index => $tabla) {
             $alias = "t" . ($index + 1);
             $sql .= ", {$alias}.*";
-            $joins_sql .= " LEFT JOIN {$tabla} {$alias} ON u.cedula = {$alias}.cedula";
+            $joins_sql .= " LEFT JOIN {$tabla} {$alias} ON u." . sql_cedula . " = {$alias}." . sql_cedula;
         }
 
-        $sql .= " FROM " . sql_tabla_usuario . " u{$joins_sql} WHERE u.cedula = ?";
+        $sql .= " FROM " . sql_tabla_usuario . " u{$joins_sql} WHERE u." . sql_cedula . " = ?";
 
-        // 4. Ejecutar la consulta
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
 
-        Model_Log::add_log_sql(self::model_log, "Consulta administrativa de datos completos para CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta administrativa de datos completos para CI: {$ci}");
 
         if (!$query_result->success) {
             return null;
@@ -452,38 +445,40 @@ class Model_User
             return null;
         }
 
-        unset($data['clave']); 
+        unset($data[sql_clave]); 
 
         return $data;
     }
 
     public static function delete_user(int $ci): ?bool
     {
-        if (! self::has_user($ci)){
+        if (!self::has_user($ci)) {
             return null;
         }
 
-        $sql = "DELETE FROM ".sql_tabla_usuario." WHERE `".sql_cedula."` = ?";
+        $sql = "DELETE FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ?";
 
         $db = new Util_DbConnection();
 
-        $result_query = $db->executeQuery($sql,"i",$ci);
+        $result_query = $db->executeQuery($sql, "i", $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Eliminar usuario CI: {$ci}");
 
-        return  $result_query->success;
+        return $result_query->success;
     }
 
     public static function delete_user_request(int $ci): ?bool
     {
-        if (! self::has_request_user($ci)){
+        if (!self::has_request_user($ci)) {
             return null;
         }
 
-        $sql = "DELETE FROM ".sql_tabla_soli_usuario." WHERE ".sql_cedula." = ?";
+        $sql = "DELETE FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ?";
 
         $db = new Util_DbConnection();
 
-        $result_query = $db->executeQuery($sql,"i",$ci);
+        $result_query = $db->executeQuery($sql, "i", $ci);
+        Model_Log::add_log_sql(self::MODEL_LOG, "Eliminar solicitud de usuario CI: {$ci}");
 
-        return  $result_query->success;
+        return $result_query->success;
     }
 }
