@@ -86,7 +86,7 @@ class Model_Log
         }
 
         // Nota el espacio extra antes de "WHERE" y antes de "ORDER"
-        $sql = "SELECT l.id, l.tipo_log, l.texto, l.cedula_usuario, u.tipo AS tipo_usuario
+        $sql = "SELECT l.id, l.fecha, l.tipo_log, l.texto, l.cedula_usuario, u.tipo AS tipo_usuario
                 FROM log_user l
                 INNER JOIN usuario u ON l.cedula_usuario = u.cedula    "
                 . $where_clause . 

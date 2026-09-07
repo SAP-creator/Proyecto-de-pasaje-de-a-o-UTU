@@ -1,6 +1,6 @@
 <?php
 include_once __DIR__ . "/../constantes/Const_Json.php";
-include_once __DIR__ . "/../controladores/Controller_VerifyData.php";
+include_once __DIR__ . "/../utils/Util_VerifyData.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 
 class Controller_Auth {
@@ -38,8 +38,8 @@ class Controller_Auth {
     public static function comprobate_token(array $token, ...$extra_data): ?bool 
     {
         
-        Controller_VerifyData::keys_exists(true,$token,json_token);
-        Controller_VerifyData::keys_exists(true,$token[json_token],json_token_sig);
+        Util_VerifyData::keys_exists(true,$token,json_token);
+        Util_VerifyData::keys_exists(true,$token[json_token],json_token_sig);
 
         if (!self::comprobate_required_data($token[json_token])) return null;
         
@@ -101,14 +101,42 @@ class Controller_Auth {
         }
     }
 
-    /**
-     * Extrae de forma segura el CI del usuario desde la estructura del token.
-     */
-    public static function get_ci_from_token(array $data): ?int 
+    public static function get_from_token(array $data, string $data_to_extract): TokenResult
     {
-        if (isset($data[json_token][json_user][json_ci])) {
-            return (int)$data[json_token][json_user][json_ci];
+        if (!Util_VerifyData::keys_exists(false, $data, json_token)) {
+            return new TokenResult(false);
         }
-        return null;
+
+        if (!Util_VerifyData::keys_exists(false, $data[json_token], json_user)) {
+            return new TokenResult(false);
+        }
+
+        if (!Util_VerifyData::keys_exists(false, $data[json_token][json_user], $data_to_extract)) {
+            return new TokenResult(false);
+        }
+
+        return new TokenResult(true, $data[json_token][json_user][$data_to_extract]);
+    }
+}
+
+class TokenResult
+{
+    private bool $found;
+    private mixed $value;
+
+    public function __construct(bool $found, mixed $value = null)
+    {
+        $this->found = $found;
+        $this->value = $value;
+    }
+
+    public function is_found(): bool
+    {
+        return $this->found;
+    }
+
+    public function get_value(): mixed
+    {
+        return $this->value;
     }
 }

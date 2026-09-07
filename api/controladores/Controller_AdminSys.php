@@ -5,7 +5,7 @@ include_once __DIR__ . "/../modelo/Model_Log.php";
 include_once __DIR__ . "/../constantes/Const_Sql.php";
 include_once __DIR__ . "/../constantes/Const_Json.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
-include_once __DIR__ . "/../controladores/Controller_VerifyData.php";
+include_once __DIR__ . "/../utils/Util_VerifyData.php";
 
 class Controller_AdminSys
 {
@@ -13,14 +13,13 @@ class Controller_AdminSys
 
     public static function get_users_data(array $data): Util_HttpResponse
     {
-        
-        $has_type = Controller_VerifyData::keys_exists(false, $data, json_typeuser);
+        $has_type = Util_VerifyData::keys_exists(false, $data, json_typeuser);
         $type = $has_type ? $data[json_typeuser] : "";
 
         $all_data_users = Model_User::get_users($type);
 
         if (is_null($all_data_users)) {
-            return Util_HttpResponse::error(http_bad_request,"Tipo de usuario incorrecto o error en BD");
+            return Util_HttpResponse::error(http_bad_request, "Tipo de usuario incorrecto o error en BD");
         }
 
         $data_user = [];
@@ -28,148 +27,110 @@ class Controller_AdminSys
             $data_user[$user[sql_cedula]] = $user[sql_tipo];
         }
 
-        Controller_VerifyData::keys_exists(true, $data, json_token);
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
-        
-        $ci_admin = $data[json_token][json_ci];
-
-        
         Model_Log::add_log_user($ci_admin, self::type_log, "Obtiene la lista de usuarios");
-        
 
         return Util_HttpResponse::ok($data_user);
     }
 
     public static function get_request_user_data(array $data): Util_HttpResponse
     {
-        $has_type = Controller_VerifyData::keys_exists(false, $data, json_typeuser);
+        $has_type = Util_VerifyData::keys_exists(false, $data, json_typeuser);
         $type = $has_type ? $data[json_typeuser] : "";
 
         $requests = Model_User::get_request_users($type);
 
         if (is_null($requests)) 
-            return Util_HttpResponse::error(http_internal_error,"Tipo de usuario incorrecto o error al obtener solicitudes");
+            return Util_HttpResponse::error(http_internal_error, "Tipo de usuario incorrecto o error al obtener solicitudes");
 
-        Controller_VerifyData::keys_exists(true, $data, json_token);
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
-        
-        $ci_admin = $data[json_token][json_ci];
-
-        
         Model_Log::add_log_user($ci_admin, self::type_log, "Obtiene las solicitudes de registro de usuarios");
-        
 
         return Util_HttpResponse::ok($requests);
     }
 
     public static function has_user(array $data): Util_HttpResponse
     {
-        
-        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data, json_user);
         $user = $data[json_user];
-        Controller_VerifyData::keys_exists(true,$user, json_ci);
+        Util_VerifyData::keys_exists(true, $user, json_ci);
 
         $ci = (int)$user[json_ci];
-        $type = Controller_VerifyData::keys_exists(false, $user, json_typeuser) ? $user[json_typeuser] : "";
+        $type = Util_VerifyData::keys_exists(false, $user, json_typeuser) ? $user[json_typeuser] : "";
 
         $exists = Model_User::has_user($ci, $type);
 
         if (is_null($exists)) {
-            return Util_HttpResponse::error(http_internal_error,"Error en la consulta de usuario");
+            return Util_HttpResponse::error(http_internal_error, "Error en la consulta de usuario");
         }
 
-        Controller_VerifyData::keys_exists(true, $data, json_token);
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
-        
-        $ci_admin = $data[json_token][json_ci];
-
-     
         Model_Log::add_log_user($ci_admin, self::type_log, "Verifica si existe el usuario con CI: {$ci}");
-        
 
-        return Util_HttpResponse::ok(["exists" => $exists]);
+        return Util_HttpResponse::ok(["EXISTS" => $exists]);
     }
 
     public static function has_request_user(array $data): Util_HttpResponse
     {
-        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data, json_user);
         $user = $data[json_user];
-        Controller_VerifyData::keys_exists(true, $user, json_ci);
-            
+        Util_VerifyData::keys_exists(true, $user, json_ci);
 
         $ci = (int)$user[json_ci];
-        $type = Controller_VerifyData::keys_exists(false, $user, json_typeuser) ? $user[json_typeuser] : "";
+        $type = Util_VerifyData::keys_exists(false, $user, json_typeuser) ? $user[json_typeuser] : "";
 
         $exists = Model_User::has_request_user($ci, $type);
 
         if (is_null($exists)) {
-            return Util_HttpResponse::error(http_internal_error,"Error en la consulta de solicitudes");
+            return Util_HttpResponse::error(http_internal_error, "Error en la consulta de solicitudes");
         }
 
-        Controller_VerifyData::keys_exists(true, $data, json_token);
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_ci);
-        
-        $ci_admin = $data[json_token][json_ci];
-
-
-            Model_Log::add_log_user($ci_admin, self::type_log, "Verifica si existe la solicitud para el CI: {$ci}");
-        
+        Model_Log::add_log_user($ci_admin, self::type_log, "Verifica si existe la solicitud para el CI: {$ci}");
 
         return Util_HttpResponse::ok(["exists" => $exists]);
     }
 
     public static function get_logs_user(array $data): Util_HttpResponse
     {
-        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data, json_user);
         $user = $data[json_user];
-        Controller_VerifyData::keys_exists(true,$user,json_ci);
+        Util_VerifyData::keys_exists(true, $user, json_ci);
         
         $ci = (int)$data[json_user][json_ci];
-        $type_log = Controller_VerifyData::keys_exists(false, $user, json_typelog) ? $user[json_typelog] : "";
+        $type_log = Util_VerifyData::keys_exists(false, $user, json_typelog) ? $user[json_typelog] : "";
 
         $logs = Model_Log::get_logs_user($ci, $type_log);
 
         if (is_null($logs)) {
-            return Util_HttpResponse::error(http_internal_error,"Error al buscar logs del usuario {$ci} {$type_log}");
+            return Util_HttpResponse::error(http_internal_error, "Error al buscar logs del usuario {$ci} {$type_log}");
         }
 
-        Controller_VerifyData::keys_exists(true, $data, json_token);
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
-        Controller_VerifyData::keys_exists(true, $data[json_token][json_user], json_ci);
-        
-        $ci_admin = $data[json_token][json_user][json_ci];
-
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta el historial de logs del usuario CI: {$ci}");
-        
 
         return Util_HttpResponse::ok($logs);
     }
 
     public static function get_logs_users(array $data): Util_HttpResponse
     {
-        $type_user = Controller_VerifyData::keys_exists(false, $data, json_typeuser) ? $data[json_typeuser] : "";
-        $type_log = Controller_VerifyData::keys_exists(false, $data, json_typelog) ? $data[json_typelog] : "";
+        $type_user = Util_VerifyData::keys_exists(false, $data, json_typeuser) ? $data[json_typeuser] : "";
+        $type_log = Util_VerifyData::keys_exists(false, $data, json_typelog) ? $data[json_typelog] : "";
 
         $logs = Model_Log::get_logs_users($type_user, $type_log);
 
         if (is_null($logs)) {
-            return Util_HttpResponse::error(http_internal_error,"Error al buscar logs de usuarios con tipo: '{$type_user}' y categoría: '{$type_log}'");
+            return Util_HttpResponse::error(http_internal_error, "Error al buscar logs de usuarios con tipo: '{$type_user}' y categoría: '{$type_log}'");
         }
 
-        Controller_VerifyData::keys_exists(true, $data, json_token);
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
-        Controller_VerifyData::keys_exists(true, $data[json_token][json_user], json_ci);
-
-        $ci_admin = $data[json_token][json_user][json_ci];
-
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta logs globales de usuarios filtrados por tipo: '{$type_user}'");
-        
 
         return Util_HttpResponse::ok($logs);
     }
@@ -179,16 +140,10 @@ class Controller_AdminSys
         $logs = Model_Log::get_logs_sql();
 
         if (is_null($logs)){
-            return Util_HttpResponse::error(http_internal_error,"error en la base de datos");
+            return Util_HttpResponse::error(http_internal_error, "error en la base de datos");
         }
-        
-        Controller_VerifyData::keys_exists(true, $data, json_token);
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
-        Controller_VerifyData::keys_exists(true, $data[json_token][json_user], json_ci);
-        
-        $ci_admin = $data[json_token][json_user][json_ci];
-
+        $ci_admin = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
         Model_Log::add_log_user($ci_admin, self::type_log, "Consulta de peticiones sql");
 
@@ -197,12 +152,12 @@ class Controller_AdminSys
 
     public static function get_data_user(array $data): Util_HttpResponse
     {
-        Controller_VerifyData::keys_exists(true, $data, json_user);
-        Controller_VerifyData::keys_exists(true, $data[json_user], json_ci);
+        Util_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data[json_user], json_ci);
 
         $user_data = Model_User::get_user_data($data[json_user][json_ci]);
         if (is_null($user_data)){
-            return Util_HttpResponse::error(http_internal_error);
+            return Util_HttpResponse::error(http_internal_error, "Error no se consiguo al user");
         }
 
         return Util_HttpResponse::ok($user_data);
@@ -210,8 +165,8 @@ class Controller_AdminSys
 
     public static function delete_user(array $data): Util_HttpResponse
     {
-        Controller_VerifyData::keys_exists(true, $data, json_user);
-        Controller_VerifyData::keys_exists(true, $data[json_user], json_ci);
+        Util_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data[json_user], json_ci);
         $ci = $data[json_user][json_ci];
         
         $a = Model_User::delete_user($ci);
@@ -220,13 +175,15 @@ class Controller_AdminSys
         }
         return Util_HttpResponse::error(http_bad_request);
     }
-     public static function delete_user_request(array $data): Util_HttpResponse
+
+    public static function delete_user_request(array $data): Util_HttpResponse
     {
-        Controller_VerifyData::keys_exists(true, $data, json_user);
-        Controller_VerifyData::keys_exists(true, $data[json_user], json_ci);
+        Util_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data[json_user], json_ci);
         $ci = $data[json_user][json_ci];
         
         $a = Model_User::delete_user_request($ci);
+    var_dump ($a);
         if ($a == true){
             return Util_HttpResponse::ok();
         }

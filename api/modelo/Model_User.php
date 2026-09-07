@@ -474,7 +474,7 @@ class Model_User
 
     public static function delete_user_request(int $ci): ?bool
     {
-        if (! self::has_user($ci)){
+        if (! self::has_request_user($ci)){
             return null;
         }
 

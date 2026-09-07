@@ -3,8 +3,9 @@
 include_once __DIR__ . "/../modelo/Model_User.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../utils/Util_Translator.php";
-include_once __DIR__ . "/../controladores/Controller_VerifyData.php";
+include_once __DIR__ . "/../utils/Util_VerifyData.php";
 include_once __DIR__ . "/../controladores/Controller_Auth.php";
+include_once __DIR__ . "/Controller_Sign.php";
 
 class Controller_UserChangeData 
 {
@@ -68,20 +69,14 @@ class Controller_UserChangeData
 
     public static function user_change_data_by_user(array $data): Util_HttpResponse 
     {
-        Controller_VerifyData::keys_exists(true, $data, json_token);
- 
-     if (Controller_Auth::comprobate_token($data) !== true) {
+        if (Controller_Auth::comprobate_token($data) !== true) {
             return Util_HttpResponse::error(http_forbidden, "No tienes un token válido");
         }
 
-        Controller_VerifyData::keys_exists(true, $data[json_token], json_user);
-        $user_token = $data[json_token][json_user];
+        $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
+        $typeuser = (string) Util_VerifyData::verify_and_get_from_token($data, json_typeuser);
 
-        Controller_VerifyData::keys_exists(true, $user_token, json_ci, json_typeuser);
-        $ci = (int) $user_token[json_ci];
-        $typeuser = (string) $user_token[json_typeuser];
-
-        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data, json_user);
         $user_payload = $data[json_user];
 
         $schema_permitido = self::PERMITIDO_USUARIO[$typeuser] ?? [];
@@ -103,15 +98,13 @@ class Controller_UserChangeData
 
     public static function user_change_data_by_admin(array $data): Util_HttpResponse 
     {
-        Controller_VerifyData::keys_exists(true, $data, json_token);
-
         $es_admin = Controller_Auth::comprobate_token_typeuser($data, enum_tipo_admin_sistema);
 
         if ($es_admin !== true) {
             return Util_HttpResponse::error(http_unaunthorize, "Acceso denegado. Requiere permisos de administrador");
         }
 
-        Controller_VerifyData::keys_exists(true, $data, json_user);
+        Util_VerifyData::keys_exists(true, $data, json_user);
         $user_payload = $data[json_user];
 
         // Se castea adecuadamente a int
@@ -145,13 +138,17 @@ class Controller_UserChangeData
                         continue;
                     }
 
+                    // Si el campo es la contraseña, aplicamos el hash
+                    if ($json_key === json_password) {
+                        $valor = Controller_Sign::hash_password((string) $valor);
+                    }
+
                     $changes_by_table[$tabla][$json_key] = $valor;
                 }
             }
         }
 
         if (empty($changes_by_table)) {
-            
             return false;
         }
        
