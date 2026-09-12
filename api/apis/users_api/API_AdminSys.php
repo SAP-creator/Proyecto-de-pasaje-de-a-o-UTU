@@ -1,4 +1,6 @@
 <?php
+
+
 #Api de admin de sistema.
 #casi 100% humana, quitando algunos comentarios, y los nombres de variables... no soy bueno poniendo nombre de variables como vera en los controladores
 
