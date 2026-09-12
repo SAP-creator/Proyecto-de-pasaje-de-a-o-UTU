@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nombre — Sistema</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <nav class="internal-nav">
+    <a href="index.html" class="nav-logo brand">
+      <span>N</span><span>o</span><span>m</span><span>b</span><span>r</span><span>e</span>
+    </a>
+
+    <div class="app-tabs" id="app_tabs"></div>
+
+    <div class="nav-right" id="zona_sesion"></div>
+  </nav>
+
+  <div id="seccion_mapa" class="seccion-app active">
+    <div class="seccion-header">
+      <h2>Mapa de recolección — Montevideo</h2>
+    </div>
+    <div class="mapa-controles hidden" id="mapa_controles">
+      <label>Ver ruta en el mapa
+        <select id="selector_ruta_mapa"></select>
+      </label>
+    </div>
+    <div id="mapa_google" class="mapa-contenedor"></div>
+  </div>
+
+  <div id="seccion_camiones" class="seccion-app"></div>
+  <div id="seccion_contenedores" class="seccion-app"></div>
+  <div id="seccion_centros" class="seccion-app"></div>
+  <div id="seccion_rutas" class="seccion-app"></div>
+  <div id="seccion_cuadrillas" class="seccion-app"></div>
+  <div id="seccion_trayectos" class="seccion-app"></div>
+  <div id="seccion_incidencias" class="seccion-app"></div>
+  <div id="seccion_admin" class="seccion-app"></div>
+
+  <!-- ===================== MIS DATOS (todos los roles) ===================== -->
+  <div id="seccion_datos" class="seccion-app">
+    <div class="seccion-header"><h2>Mis datos</h2></div>
+    <div class="tarjeta-formulario">
+      <form class="form-grid" id="form_mis_datos">
+        <label>Cédula
+          <input type="text" id="datos_ci_solo_lectura" disabled>
+        </label>
+        <label>Tipo de usuario
+          <input type="text" id="datos_tipo_solo_lectura" disabled>
+        </label>
+        <label>Nombre
+          <input type="text" name="FIRSTNAME">
+        </label>
+        <label>Apellido
+          <input type="text" name="LASTNAME">
+        </label>
+        <label class="span-2">Nueva contraseña
+          <input type="password" name="PASSWORD" placeholder="Dejar en blanco para no cambiar">
+        </label>
+      </form>
+      <p class="form-mensaje hidden" id="datos_mensaje"></p>
+      <button type="button" class="btn-primary" id="datos_guardar">Guardar cambios</button>
+    </div>
+  </div>
+
+  <!-- ===================== ADMIN SISTEMA: USUARIOS ===================== -->
+  <div id="seccion_usuarios" class="seccion-app">
+    <div class="seccion-header"><h2>Usuarios</h2></div>
+    <div class="filtros-fila">
+      <label>Tipo de usuario
+        <select id="usuarios_filtro_tipo"></select>
+      </label>
+      <label>Buscar por CI
+        <input type="text" id="usuarios_buscar_ci" placeholder="Ej: 12345678">
+      </label>
+    </div>
+    <table class="tabla-datos">
+      <thead><tr><th>CI</th><th>Tipo de usuario</th><th></th></tr></thead>
+      <tbody id="usuarios_tabla_cuerpo"></tbody>
+    </table>
+    <p class="tabla-vacia hidden" id="usuarios_tabla_vacia"></p>
+  </div>
+
+  <!-- ===================== ADMIN SISTEMA: SOLICITUDES ===================== -->
+  <div id="seccion_solicitudes" class="seccion-app">
+    <div class="seccion-header"><h2>Solicitudes de usuario</h2></div>
+    <div class="filtros-fila">
+      <label>Tipo de usuario
+        <select id="solicitudes_filtro_tipo"></select>
+      </label>
+    </div>
+    <table class="tabla-datos">
+      <thead><tr><th></th><th>CI</th><th>Tipo de usuario</th><th></th></tr></thead>
+      <tbody id="solicitudes_tabla_cuerpo"></tbody>
+    </table>
+    <p class="tabla-vacia hidden" id="solicitudes_tabla_vacia"></p>
+    <button type="button" class="btn-primary" id="solicitudes_borrar_seleccionados">Borrar a todos los seleccionados</button>
+  </div>
+
+  <!-- ===================== ADMIN SISTEMA: LOGS ===================== -->
+  <div id="seccion_logs" class="seccion-app">
+    <div class="seccion-header"><h2>Logs</h2></div>
+    <div class="tabs-nav" id="logs_subtabs" data-grupo="logs"></div>
+
+    <div class="tab-panel active" id="logs_panel_usuarios" data-grupo="logs">
+      <table class="tabla-datos">
+        <thead><tr><th>Fecha</th><th>CI</th><th>Controlador</th><th>Texto</th></tr></thead>
+        <tbody id="logs_usuarios_tabla_cuerpo"></tbody>
+      </table>
+      <p class="tabla-vacia hidden" id="logs_usuarios_tabla_vacia"></p>
+    </div>
+
+    <div class="tab-panel" id="logs_panel_bd" data-grupo="logs">
+      <table class="tabla-datos">
+        <thead><tr><th>Fecha</th><th>Modelo</th><th>Texto</th></tr></thead>
+        <tbody id="logs_bd_tabla_cuerpo"></tbody>
+      </table>
+      <p class="tabla-vacia hidden" id="logs_bd_tabla_vacia"></p>
+    </div>
+  </div>
+
+  <!-- Modal genérico para los formularios de alta / edición -->
+  <div class="modal-overlay hidden" id="modal_overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal_titulo">Título</h3>
+        <button class="modal-cerrar" onclick="cerrarModal()">✕</button>
+      </div>
+      <div id="modal_contenido"></div>
+    </div>
+  </div>
+
+  <!-- Mini popup de confirmación (#F): "¿seguro que...? SI / NO" -->
+  <div class="modal-overlay hidden confirm-overlay" id="confirm_overlay">
+    <div class="modal-card confirm-card">
+      <p class="confirm-mensaje" id="confirm_mensaje"></p>
+      <div class="confirm-acciones">
+        <button type="button" class="btn-primary" id="confirm_si">Sí</button>
+        <button type="button" class="btn-outline" id="confirm_no">No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TEMPLATES (usados por los js/menu-*.js) ===================== -->
+
+  <!-- Fila de la lista de usuarios (admin sistema) -->
+  <template id="tpl_fila_usuario">
+    <tr>
+      <td data-campo="ci"></td>
+      <td data-campo="tipo"></td>
+      <td class="acciones-fila">
+        <button type="button" class="btn-icono editar" data-accion="opciones">Opciones</button>
+      </td>
+    </tr>
+  </template>
+
+  <!-- Contenido del modal #1: opciones de un usuario -->
+  <template id="tpl_modal_opciones_usuario">
+    <div class="modal-form">
+      <button type="button" class="btn-primary" data-accion="ver-datos">Datos</button>
+      <button type="button" class="btn-icono eliminar" data-accion="borrar">Borrar usuario</button>
+    </div>
+  </template>
+
+  <!-- Contenido del modal #2: ver/editar datos de un usuario -->
+  <template id="tpl_modal_datos_usuario">
+    <form class="modal-form">
+      <p class="modal-aviso" data-campo="ci-tipo"></p>
+      <label>Nombre
+        <input type="text" name="FIRSTNAME">
+      </label>
+      <label>Apellido
+        <input type="text" name="LASTNAME">
+      </label>
+      <label>Nueva contraseña
+        <input type="password" name="PASSWORD" placeholder="Dejar en blanco para no cambiar">
+      </label>
+      <p class="form-mensaje hidden" data-campo="mensaje"></p>
+      <button type="submit" class="btn-primary">Guardar cambios</button>
+    </form>
+  </template>
+
+  <!-- Fila de la lista de solicitudes -->
+  <template id="tpl_fila_solicitud">
+    <tr>
+      <td><input type="checkbox" data-campo="check"></td>
+      <td data-campo="ci"></td>
+      <td data-campo="tipo"></td>
+      <td class="acciones-fila">
+        <button type="button" class="btn-icono eliminar" data-accion="borrar">Borrar</button>
+      </td>
+    </tr>
+  </template>
+
+  <!-- Fila de logs de usuarios -->
+  <template id="tpl_fila_log_usuario">
+    <tr>
+      <td data-campo="fecha"></td>
+      <td data-campo="ci"></td>
+      <td data-campo="tipo"></td>
+      <td data-campo="texto"></td>
+    </tr>
+  </template>
+
+  <!-- Fila de logs de base de datos -->
+  <template id="tpl_fila_log_sql">
+    <tr>
+      <td data-campo="fecha"></td>
+      <td data-campo="modelo"></td>
+      <td data-campo="texto"></td>
+    </tr>
+  </template>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/menu-datos.js"></script>
+  <script src="js/menu-admin-usuarios.js"></script>
+  <script src="js/menu-admin-solicitudes.js"></script>
+  <script src="js/menu-admin-logs.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/map.js"></script>
+</body>
+</html>
