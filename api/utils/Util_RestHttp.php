@@ -23,13 +23,17 @@ class Util_HttpResponse {
         $this->body = $body;
     }
 
-    public static function ok(mixed ...$data): self {
+    public static function ok(string $code, mixed ...$data): self {
         $respuesta = empty($data) ? 204 : 200;
+        array_push($data, [json_code => $code]);
+        
         return new self($respuesta, json_encode($data));
     }
 
-    public static function created(mixed ...$data): self {
+    public static function created(string $code, mixed ...$data): self {
         $body = empty($data) ? "" : json_encode($data);
+        array_push($data, [json_code => $code]);
+
         return new self(201, $body);
     }
 
@@ -37,7 +41,8 @@ class Util_HttpResponse {
         return new self($status, json_encode($data));
     }
 
-    public static function error(int $code = 400, mixed ...$data): self {
+    public static function error(string $error_code, int $code = 400, mixed ...$data): self {
+        array_push($data, [json_code => $error_code]);
         return new self($code, json_encode($data));
     }
 
