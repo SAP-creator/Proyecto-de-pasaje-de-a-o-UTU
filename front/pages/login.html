@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nombre — Iniciar sesión</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+  <div class="auth-page">
+
+    <a href="../index.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Volver al inicio
+    </a>
+
+    <div class="auth-card">
+
+      <a href="../index.html" class="auth-logo brand">
+        <span>N</span><span>o</span><span>m</span><span>b</span><span>r</span><span>e</span>
+      </a>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab_login" onclick="switchTab('login')">Iniciar sesión</div>
+        <div class="auth-tab" id="tab_register" onclick="switchTab('register')">Registrarse</div>
+      </div>
+
+      <!-- Formulario Login -->
+      <div id="form_login">
+        <p class="form-mensaje hidden" id="mensaje_login"></p>
+        <form class="auth-form" id="formulario_login">
+          <label>
+            Cédula de identidad
+            <input type="number" id="login_cedula" placeholder="Ej: 12345678" required>
+          </label>
+          <label>
+            Contraseña
+            <input type="password" id="login_password" placeholder="••••••••" required>
+          </label>
+          <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+        <p class="auth-sep">
+          ¿No tenés cuenta? <span class="link-action" onclick="switchTab('register')">Registrate</span>
+        </p>
+      </div>
+
+      <!-- Formulario Registro -->
+      <div id="form_register" class="hidden">
+        <p class="form-mensaje hidden" id="mensaje_register"></p>
+        <form class="auth-form" id="formulario_registro">
+          <label>
+            Cédula de identidad
+            <input type="number" id="registro_cedula" placeholder="Ej: 12345678" required>
+          </label>
+          <label>
+            Tipo de usuario
+            <select id="registro_tipo" required>
+              <option value="" disabled selected>Seleccioná una opción</option>
+              <option value="admin planificador">Municipal · Planificador</option>
+              <option value="admin operador">Municipal · Operador</option>
+              <option value="operador camion">Camionero</option>
+              <option value="vecino">Usuario / Vecino</option>
+            </select>
+          </label>
+          <label>
+            Contraseña
+            <input type="password" id="registro_password" placeholder="••••••••" required>
+          </label>
+          <label>
+            Repetir contraseña
+            <input type="password" id="registro_confirmar" placeholder="••••••••" required>
+          </label>
+          <button type="submit" class="btn-primary">Enviar solicitud</button>
+        </form>
+        <p class="auth-sep">
+          Un administrador del sistema tiene que aprobar tu solicitud antes de que puedas entrar.
+        </p>
+        <p class="auth-sep">
+          ¿Ya tenés cuenta? <span class="link-action" onclick="switchTab('login')">Iniciá sesión</span>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    function switchTab(tab) {
+      tab_login.classList.toggle('active', tab === 'login');
+      tab_register.classList.toggle('active', tab === 'register');
+      form_login.classList.toggle('hidden', tab !== 'login');
+      form_register.classList.toggle('hidden', tab !== 'register');
+    }
+
+    function mostrarMensaje(el, texto, tipo) {
+      el.textContent = texto;
+      el.classList.remove('hidden', 'error', 'exito');
+      el.classList.add(tipo);
+    }
+
+    formulario_login.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const cedula = login_cedula.value.trim();
+      const password = login_password.value;
+
+      const boton = evento.target.querySelector('button');
+      boton.disabled = true;
+
+      try {
+        await auth.iniciarSesion(cedula, password);
+        location.href = '../app.html';
+      } catch (error) {
+        mostrarMensaje(mensaje_login, error.message, 'error');
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    formulario_registro.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const cedula = registro_cedula.value.trim();
+      const tipo = registro_tipo.value;
+      const password = registro_password.value;
+      const confirmar = registro_confirmar.value;
+
+      if (!tipo) {
+        mostrarMensaje(mensaje_register, 'Seleccioná un tipo de usuario.', 'error');
+        return;
+      }
+      if (password !== confirmar) {
+        mostrarMensaje(mensaje_register, 'Las contraseñas no coinciden.', 'error');
+        return;
+      }
+
+      const boton = evento.target.querySelector('button');
+      boton.disabled = true;
+
+      try {
+        await auth.registrarSolicitud(cedula, password, tipo);
+        mostrarMensaje(mensaje_register, 'Listo, tu solicitud fue enviada. Un administrador del sistema tiene que aprobarla antes de que puedas iniciar sesión.', 'exito');
+        evento.target.reset();
+      } catch (error) {
+        mostrarMensaje(mensaje_register, error.message, 'error');
+      } finally {
+        boton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
