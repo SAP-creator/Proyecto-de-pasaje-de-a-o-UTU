@@ -1,6 +1,7 @@
 <?php
 include_once __DIR__ . "/../constantes/Const_Json.php";
 include_once __DIR__ . "/../utils/Util_VerifyData.php";
+include_once __DIR__ . "/../utils/Util_Code.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 
 class Controller_Auth {
@@ -100,7 +101,10 @@ class Controller_Auth {
     {
         if (!array_key_exists(json_token, $data)) {
             Model_Log::add_log_user(0, self::type_log, "Intento de acceso rechazado a funcionalidad '{$type_user}': Token ausente");
-            $res = Util_HttpResponse::error(http_bad_request, "No se puede usar opciones de {$type_user} sin un token.");
+            $res = Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::type_log, "No se puede usar opciones de {$type_user} sin un token."),
+                http_bad_request
+            );
             $res->send();
             die();
         }
@@ -110,14 +114,20 @@ class Controller_Auth {
         if ($auth === false) {
             $ci = $data[json_token][json_user][json_ci] ?? 0;
             Model_Log::add_log_user($ci, self::type_log, "Acceso no autorizado rechazado para el rol '{$type_user}'");
-            $res = Util_HttpResponse::error(http_unaunthorize, "El token no es valido");
+            $res = Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::type_log, "El token no es valido"),
+                http_unaunthorize
+            );
             $res->send();
             die();
         }
         
         if (is_null($auth)) {
             Model_Log::add_log_user(0, self::type_log, "Error en estructura de token durante verificacion de rol '{$type_user}'");
-            $res = Util_HttpResponse::error(http_bad_request, "Error en los datos del token");
+            $res = Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::type_log, "Error en los datos del token"),
+                http_bad_request
+            );
             $res->send();
             die();
         }

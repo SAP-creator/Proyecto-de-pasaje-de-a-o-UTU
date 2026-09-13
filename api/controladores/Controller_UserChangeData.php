@@ -3,6 +3,7 @@
 include_once __DIR__ . "/../modelo/Model_User.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
+include_once __DIR__ . "/../utils/Util_Code.php";
 include_once __DIR__ . "/../utils/Util_Translator.php";
 include_once __DIR__ . "/../utils/Util_VerifyData.php";
 include_once __DIR__ . "/../controladores/Controller_Auth.php";
@@ -74,7 +75,10 @@ class Controller_UserChangeData
     {
         if (Controller_Auth::comprobate_token($data) !== true) {
             Model_Log::add_log_user(0, self::LOG_TYPE, "Intento de actualización fallido: Token inválido o no proporcionado");
-            return Util_HttpResponse::error(http_forbidden, "No tienes un token válido");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No tienes un token válido"),
+                http_forbidden
+            );
         }
 
         $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
@@ -87,7 +91,10 @@ class Controller_UserChangeData
 
         if (empty($schema_permitido)) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Intento de actualización rechazado: Rol '{$typeuser}' sin permisos definidos");
-            return Util_HttpResponse::error(http_forbidden, "El tipo de usuario no tiene permisos de modificación asignados");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "El tipo de usuario no tiene permisos de modificación asignados"),
+                http_forbidden
+            );
         }
 
         $user_payload = (array) $user_payload;
@@ -97,11 +104,17 @@ class Controller_UserChangeData
         
         if (!$exito) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Fallo al actualizar datos personales: Datos inválidos o tipos incoherentes");
-            return Util_HttpResponse::error(http_bad_request, "No se enviaron datos válidos o los tipos de datos no coinciden");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No se enviaron datos válidos o los tipos de datos no coinciden"),
+                http_bad_request
+            );
         }
 
         Model_Log::add_log_user($ci, self::LOG_TYPE, "El usuario actualizó sus datos personales correctamente");
-        return Util_HttpResponse::ok(["mensaje" => "Tus datos se han actualizado correctamente"]);
+        return Util_HttpResponse::ok(
+            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::LOG_TYPE, "El usuario actualizó sus datos personales correctamente"),
+            ["mensaje" => "Tus datos se han actualizado correctamente"]
+        );
     }
 
     public static function user_change_data_by_admin(array $data): Util_HttpResponse 
@@ -111,7 +124,10 @@ class Controller_UserChangeData
 
         if ($es_admin !== true) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Acceso denegado: Intento de modificación administrativa sin rol de administrador de sistema");
-            return Util_HttpResponse::error(http_unaunthorize, "Acceso denegado. Requiere permisos de administrador");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Acceso denegado. Requiere permisos de administrador"),
+                http_unaunthorize
+            );
         }
 
         Util_VerifyData::keys_exists(true, $data, json_user);
@@ -121,18 +137,27 @@ class Controller_UserChangeData
 
         if ($target_ci <= 0) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Intento de actualización administrativa fallido: Cédula objetivo faltante o inválida");
-            return Util_HttpResponse::error(http_bad_request, "Falta o es inválida la cédula del usuario objetivo");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Falta o es inválida la cédula del usuario objetivo"),
+                http_bad_request
+            );
         }
 
         $exito = self::process_update($target_ci, $user_payload, self::PERMITIDO_ADMIN);
 
         if (!$exito) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Fallo al actualizar datos del usuario CI {$target_ci}: Campos inválidos o tipos de datos incorrectos");
-            return Util_HttpResponse::error(http_bad_request, "No se enviaron campos válidos para actualizar o el tipo de dato es incorrecto");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No se enviaron campos válidos para actualizar o el tipo de dato es incorrecto"),
+                http_bad_request
+            );
         }
 
         Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "El administrador actualizó exitosamente los datos del usuario CI: {$target_ci}");
-        return Util_HttpResponse::ok(["mensaje" => "Datos del usuario actualizados correctamente por el administrador"]);
+        return Util_HttpResponse::ok(
+            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::LOG_TYPE, "El administrador actualizó exitosamente los datos del usuario CI: {$target_ci}"),
+            ["mensaje" => "Datos del usuario actualizados correctamente por el administrador"]
+        );
     }
 
     public static function process_update(int $ci, array $payload, array $schema_permitido): bool 
