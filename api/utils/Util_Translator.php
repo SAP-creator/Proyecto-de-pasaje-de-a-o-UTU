@@ -14,7 +14,14 @@ class Util_Translator
         json_completeuser   => sql_usuario_completo,
         json_typeuser       => sql_tipo,
         json_first_name     => sql_nombre,
-        json_last_name      => sql_apellido
+        json_last_name      => sql_apellido,
+        json_user           => sql_tabla_usuario,
+        json_typelog        => sql_tipo_log,
+        json_id             => sql_id,
+        json_fecha          => sql_fecha,
+        json_cedula_usuario => sql_cedula_usuario,
+        json_tipo_modelo    => sql_tipo_modelo,
+        json_texto          => sql_texto
     ];
 
     /**
