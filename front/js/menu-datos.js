@@ -8,6 +8,13 @@
  * la documentación. Cuando me mandes esa parte, ajusto los permisos acá.
  */
 
+const LISTA_MAPEO_DATOS = {
+  'Error C ApiAdminSys InvalidPasswordFormat': 'El formato de la contraseña no es válido.',
+  'Error C ApiAdminSys InvalidMissingDataProvided': 'Los datos ingresados no son válidos.',
+  'Error C ApiAdminSys IncompleteDataDbError': 'No se pudieron guardar los datos.',
+  'OK C ApiAdminSys UserDataUpdated': 'Datos actualizados.'
+};
+
 const MenuDatos = {
   iniciar() {
     datos_ci_solo_lectura.value = auth.ci();
@@ -18,17 +25,31 @@ const MenuDatos = {
   async _guardar() {
     const form = form_mis_datos;
     const cambios = {};
+    /////modificar a futuro 
     if (form.FIRSTNAME.value.trim()) cambios.FIRSTNAME = form.FIRSTNAME.value.trim();
     if (form.LASTNAME.value.trim()) cambios.LASTNAME = form.LASTNAME.value.trim();
     if (form.PASSWORD.value) cambios.PASSWORD = form.PASSWORD.value;
 
-    try {
-      const respuesta = await api.actualizarPerfilPropio(auth.tokenUsuario(), cambios);
-      this._mostrarMensaje(respuesta.mensaje || 'Datos actualizados.', 'exito');
-      form.PASSWORD.value = '';
-    } catch (error) {
-      this._mostrarMensaje(error.message, 'error');
+
+    
+    const resultado = await ApiCliente.fetchDatos('PROFILE_UPDATE', {
+      TOKEN: auth.tokenUsuario() ,
+      USER: cambios
+    }, LISTA_MAPEO_DATOS);
+
+    if (resultado.esError) {
+      this._mostrarMensaje(resultado.mensajeUsuario, 'error');
+      return;
     }
+
+    // Si es un éxito pero no trajo mensaje o el traductor falló, forzamos el mensaje correcto
+    let msjFinal = resultado.mensaje || resultado.mensajeUsuario;
+    if (msjFinal === 'Error desconocido') {
+      msjFinal = LISTA_MAPEO_DATOS['OK C ApiAdminSys UserDataUpdated'] || 'Datos actualizados correctamente.';
+    }
+
+    this._mostrarMensaje(msjFinal, 'exito');
+    form.PASSWORD.value = '';
   },
 
   _mostrarMensaje(texto, tipo) {

@@ -1,13 +1,11 @@
 /**
  * config.js
- * Única función: guardar valores de configuración fijos del sistema.
- * No hace peticiones ni toca el DOM.
+ * Única función: guardar valores de configuración fijos del sistema que
+ * no son rutas de la API (esas están en constants.js). No hace
+ * peticiones ni toca el DOM.
  */
 
 const CONFIG = {
-  // TODO: reemplazar por la URL real del backend cuando esté desplegado.
-  API_BASE_URL: 'http://localhost:8080/GIT/api/',
-
   // Clave usada para guardar la sesión en sessionStorage.
   STORAGE_KEY_SESION: 'nombre_sesion',
 

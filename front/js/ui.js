@@ -11,10 +11,14 @@ const Modal = {
    * Abre la ventana modal genérica (la de app.html) mostrando el contenido
    * de un <template> ya clonado. "contenidoNodo" tiene que ser un Node,
    * nunca un string HTML.
+   *
+   * Por defecto se puede cerrar con el botón "✕". Pasar { cerrable: false }
+   * para un popup bloqueante (ej: completar perfil obligatorio).
    */
-  abrir(titulo, contenidoNodo) {
+  abrir(titulo, contenidoNodo, { cerrable = true } = {}) {
     modal_titulo.textContent = titulo;
     modal_contenido.replaceChildren(contenidoNodo);
+    modal_cerrar_boton.classList.toggle('hidden', !cerrable);
     modal_overlay.classList.remove('hidden');
   },
 
@@ -46,10 +50,8 @@ const Modal = {
   }
 };
 
-// El botón "✕" del modal genérico llama a esto (ver app.html).
-function cerrarModal() {
-  Modal.cerrar();
-}
+// El botón "✕" del modal genérico (#modal_cerrar_boton) cierra el modal.
+modal_cerrar_boton.addEventListener('click', () => Modal.cerrar());
 
 const Tabs = {
   /**
@@ -68,19 +70,37 @@ const Tabs = {
    */
   armarBarraPrincipal(botones) {
     app_tabs.replaceChildren();
+    
+    // 1. Buscamos si había un tab guardado
+    const tabGuardado = sessionStorage.getItem('tab_activo');
+    let indexInicial = 0;
+
     botones.forEach((btn, indice) => {
+      // 2. Si coincide con el guardado, actualizamos el índice inicial
+      if (tabGuardado === btn.idSeccion) {
+        indexInicial = indice;
+      }
+
       const boton = document.createElement('button');
       boton.type = 'button';
-      boton.className = 'app-tab' + (indice === 0 ? ' active' : '');
+      boton.className = 'app-tab' + (indice === indexInicial ? ' active' : '');
       boton.textContent = btn.texto;
+      
       boton.addEventListener('click', () => {
         app_tabs.querySelectorAll('.app-tab').forEach(b => b.classList.remove('active'));
         boton.classList.add('active');
         Tabs.mostrarSeccion(btn.idSeccion, '.seccion-app');
+        
+        // 3. Guardamos la selección cada vez que hace click
+        sessionStorage.setItem('tab_activo', btn.idSeccion);
       });
       app_tabs.appendChild(boton);
     });
-    if (botones[0]) Tabs.mostrarSeccion(botones[0].idSeccion, '.seccion-app');
+
+    // 4. Mostramos la sección correspondiente
+    if (botones[indexInicial]) {
+      Tabs.mostrarSeccion(botones[indexInicial].idSeccion, '.seccion-app');
+    }
   },
 
   /**

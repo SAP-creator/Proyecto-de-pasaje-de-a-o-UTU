@@ -7,12 +7,22 @@
  * módulo de menú por separado.
  */
 
-(async function arrancar() {
+(function arrancar() {
   if (!auth.estaLogueado()) {
     location.href = 'pages/login.html';
     return;
   }
 
+  if (!auth.perfilCompleto()) {
+    // No se arma nada de la app hasta que complete Nombre y Apellido.
+    MenuCompletar.mostrar(arrancarApp);
+    return;
+  }
+
+  arrancarApp();
+})();
+
+function arrancarApp() {
   pintarZonaSesion();
 
   const tipo = auth.tipoUsuario();
@@ -44,7 +54,7 @@
     MenuAdminSolicitudes.iniciar();
     MenuAdminLogs.iniciar();
   }
-})();
+}
 
 function pintarZonaSesion() {
   zona_sesion.replaceChildren();
