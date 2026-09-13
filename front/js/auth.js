@@ -5,7 +5,7 @@
  * solicitud), hablando con ApiCliente.fetchDatos(). No toca el DOM.
  */
 
-// Traducciones propias de esta pantalla: lo que AuthManager espera poder
+// Traducciones propias de esta pantalla: lo que "auth" espera poder
 // mostrarle al usuario para los códigos que puede devolver /user/sign/in
 // y /user/sign/up.
 const LISTA_MAPEO_AUTH = {
@@ -25,11 +25,11 @@ const LISTA_MAPEO_AUTH = {
   'OK C ApiAdminSys SignUpRequested': 'Solicitud enviada correctamente.'
 };
 
-class AuthManager {
+const auth = {
   get _sesion() {
     const guardado = sessionStorage.getItem(CONFIG.STORAGE_KEY_SESION);
     return guardado ? JSON.parse(guardado) : null;
-  }
+  },
 
   set _sesion(valor) {
     if (valor) {
@@ -37,43 +37,43 @@ class AuthManager {
     } else {
       sessionStorage.removeItem(CONFIG.STORAGE_KEY_SESION);
     }
-  }
+  },
 
   estaLogueado() {
     return this._sesion !== null;
-  }
+  },
 
   usuarioActual() {
     const s = this._sesion;
     return s ? s.usuario : null;
-  }
+  },
 
   ci() {
     const u = this.usuarioActual();
     return u ? u.CI : null;
-  }
+  },
 
   tipoUsuario() {
     const u = this.usuarioActual();
     return u ? u.TYPEUSER : null;
-  }
+  },
 
   perfilCompleto() {
     const u = this.usuarioActual();
     return u ? Boolean(u.COMPLETEUSER) : false;
-  }
+  },
 
   firma() {
     const s = this._sesion;
     return s ? s.firma : null;
-  }
+  },
 
   /** Forma de TOKEN que piden los endpoints de admin sistema.
    * DESECHADO POR AHORA
   tokenAdmin() {
-    return { 
-      USER: { CI: this.ci() }, 
-      SIGNATURE: this.firma() 
+    return {
+      USER: { CI: this.ci() },
+      SIGNATURE: this.firma()
     };
   } */
 
@@ -83,7 +83,7 @@ class AuthManager {
       USER: this.usuarioActual(),
       SIGNATURE: this.firma()
     };
-  }
+  },
 
   async iniciarSesion(ci, password) {
     const resultado = await ApiCliente.fetchDatos('SIGN_IN', {
@@ -97,7 +97,7 @@ class AuthManager {
 
     this._sesion = { usuario: token.USER, firma: token.SIGNATURE };
     return token.USER;
-  }
+  },
 
   /**
    * Se llama después de que /user/complete confirma que el perfil ya
@@ -109,7 +109,7 @@ class AuthManager {
     if (!sesion) return;
     sesion.usuario.COMPLETEUSER = true;
     this._sesion = sesion;
-  }
+  },
 
   async registrarSolicitud(ci, password, tipoUsuario) {
     const resultado = await ApiCliente.fetchDatos('SIGN_UP', {
@@ -118,11 +118,9 @@ class AuthManager {
 
     if (resultado.esError) throw new Error(resultado.mensajeUsuario);
     return resultado;
-  }
+  },
 
   cerrarSesion() {
     this._sesion = null;
   }
-}
-
-const auth = new AuthManager();
+};
