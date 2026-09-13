@@ -1,33 +1,29 @@
 <?php
 
-
 include_once __DIR__ . "/Util_RestHttp.php";
 include_once __DIR__ . "/Util_Code.php";
 include_once __DIR__ . "/../controladores/Controller_Auth.php";
 
-class Util_VerifyData {
+class Util_VerifyData 
+{
+    private const SYS_NAME = "VerifyData";
 
-    private const LOG_TYPE = "VERIFY DATA UTIL";
-
-    static public function keys_exists(bool $die, array $list, mixed ...$keys): bool {
+    public static function keys_exists(bool $die, array $list, mixed ...$keys): bool 
+    {
         $verified_array = [];
 
         foreach ($keys as $key) {
             if (array_key_exists($key, $list)) {
                 array_push($verified_array, $list[$key]);
             } else {
-                if ($die) 
-                {
-                    // Enviar la respuesta HTTP
+                if ($die) {
                     Util_HttpResponse::error(
-                        Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No existe la key {$key} en el array -Verify"),
-                        http_unprocessable_entity
+                        Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, "MissingKeyInArray"),
+                        http_unprocessable_entity,
+                        [json_error=>"No se encontro a {$key}"]
                     )->send();
-                    //MY JUDGMENT IS DEAD -dijo un rey. No se cual rey pueda ser, no le pude ver la cara.
-                    die;
-                } 
-                else
-                {
+                    die();
+                } else {
                     return false;
                 } 
             }
@@ -36,13 +32,13 @@ class Util_VerifyData {
         return true;
     }
 
-    public static function verify_and_get_from_token(array $data, string $key, string $custom_error_msg = "Datos del token inválidos o incompletos"): mixed
+    public static function verify_and_get_from_token(array $data, string $key, string $custom_error_code = "TokenDataNotFound"): mixed
     {
         $result = Controller_Auth::get_from_token($data, $key);
 
         if (!$result->is_found()) {
             Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, $custom_error_msg),
+                Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, $custom_error_code),
                 http_bad_request
             )->send();
             die();
@@ -57,10 +53,10 @@ class Util_VerifyData {
         if (!is_string($str)) {
             if ($die) {
                 Util_HttpResponse::error(
-                    Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No es posible procesar JSON: el dato enviado no es un texto"),
+                    Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, "DataIsNotString"),
                     http_bad_request
                 )->send();
-                exit;
+                die();
             }
             return null;
         }
@@ -72,10 +68,10 @@ class Util_VerifyData {
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
             if ($die) {
                 Util_HttpResponse::error(
-                    Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Error: lo enviado no es un JSON válido"),
+                    Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, "InvalidJsonFormat"),
                     http_bad_request
                 )->send();
-                exit;
+                die();
             }
             return null;
         }

@@ -1,5 +1,9 @@
 <?php
 
+
+
+
+
 include_once __DIR__ . "/../modelo/Model_User.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
@@ -12,6 +16,7 @@ include_once __DIR__ . "/Controller_Sign.php";
 class Controller_UserChangeData 
 {
     private const LOG_TYPE = "USER CHANGE DATA CONTROLLER";
+    private const SYS_NAME = "ApiAdminSys";
 
     private const PERMITIDO_USUARIO = [
         enum_tipo_vecino => [
@@ -76,23 +81,24 @@ class Controller_UserChangeData
         if (Controller_Auth::comprobate_token($data) !== true) {
             Model_Log::add_log_user(0, self::LOG_TYPE, "Intento de actualización fallido: Token inválido o no proporcionado");
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No tienes un token válido"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidToken"),
                 http_forbidden
             );
         }
 
         $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
         $typeuser = (string) Util_VerifyData::verify_and_get_from_token($data, json_typeuser);
+        $translated_typeuser = Util_Translator::json_to_sql($typeuser) ?? $typeuser;
 
         Util_VerifyData::keys_exists(true, $data, json_user);
         $user_payload = $data[json_user];
 
-        $schema_permitido = self::PERMITIDO_USUARIO[$typeuser] ?? [];
+        $schema_permitido = self::PERMITIDO_USUARIO[$translated_typeuser] ?? self::PERMITIDO_USUARIO[$typeuser] ?? [];
 
         if (empty($schema_permitido)) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Intento de actualización rechazado: Rol '{$typeuser}' sin permisos definidos");
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "El tipo de usuario no tiene permisos de modificación asignados"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "UserTypePermissionsMissing"),
                 http_forbidden
             );
         }
@@ -105,27 +111,26 @@ class Controller_UserChangeData
         if (!$exito) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Fallo al actualizar datos personales: Datos inválidos o tipos incoherentes");
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No se enviaron datos válidos o los tipos de datos no coinciden"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidOrMismatchData"),
                 http_bad_request
             );
         }
 
         Model_Log::add_log_user($ci, self::LOG_TYPE, "El usuario actualizó sus datos personales correctamente");
         return Util_HttpResponse::ok(
-            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::LOG_TYPE, "El usuario actualizó sus datos personales correctamente"),
-            ["mensaje" => "Tus datos se han actualizado correctamente"]
+            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::SYS_NAME, "UserDataUpdated"),
         );
     }
 
     public static function user_change_data_by_admin(array $data): Util_HttpResponse 
     {
         $admin_ci = (int) (Util_VerifyData::verify_and_get_from_token($data, json_ci) ?? 0);
-        $es_admin = Controller_Auth::comprobate_token_typeuser($data, enum_tipo_admin_sistema);
+        $es_admin = Controller_Auth::comprobate_token_typeuser($data, json_typeuser);
 
         if ($es_admin !== true) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Acceso denegado: Intento de modificación administrativa sin rol de administrador de sistema");
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Acceso denegado. Requiere permisos de administrador"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "AdminAccessDenied"),
                 http_unaunthorize
             );
         }
@@ -138,7 +143,7 @@ class Controller_UserChangeData
         if ($target_ci <= 0) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Intento de actualización administrativa fallido: Cédula objetivo faltante o inválida");
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Falta o es inválida la cédula del usuario objetivo"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidTargetCi"),
                 http_bad_request
             );
         }
@@ -148,16 +153,14 @@ class Controller_UserChangeData
         if (!$exito) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Fallo al actualizar datos del usuario CI {$target_ci}: Campos inválidos o tipos de datos incorrectos");
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No se enviaron campos válidos para actualizar o el tipo de dato es incorrecto"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidOrMismatchData"),
                 http_bad_request
             );
         }
 
         Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "El administrador actualizó exitosamente los datos del usuario CI: {$target_ci}");
         return Util_HttpResponse::ok(
-            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::LOG_TYPE, "El administrador actualizó exitosamente los datos del usuario CI: {$target_ci}"),
-            ["mensaje" => "Datos del usuario actualizados correctamente por el administrador"]
-        );
+            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::SYS_NAME, "AdminUserDataUpdated")        );
     }
 
     public static function process_update(int $ci, array $payload, array $schema_permitido): bool 

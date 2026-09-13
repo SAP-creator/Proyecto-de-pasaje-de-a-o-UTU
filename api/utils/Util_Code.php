@@ -28,7 +28,7 @@ error/ok + vista/controlador/modelo +  nom_sistema   +  que paso
     String
 
     #que paso
-    sea un texto muy reducido
+    sea un texto muy reducido y en snakeCase
 */
 
 class StatusCode
@@ -42,6 +42,7 @@ class LayerCode
     public const VIEW = 'V';
     public const CONTROLLER = 'C';
     public const MODEL = 'M';
+    public const UTIL = 'U';
 }
 
 class Util_Code

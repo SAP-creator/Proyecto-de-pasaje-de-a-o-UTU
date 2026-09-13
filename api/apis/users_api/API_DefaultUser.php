@@ -1,11 +1,20 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+
+
 
 
 
 include_once __DIR__ . "/../../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../utils/Util_VerifyData.php";
-include_once __DIR__ . "/../../controladores/Controller_UserSetup.php";
+include_once __DIR__ . "/../../utils/Util_Code.php"; // Aseguramos incluir la clase del código de estado
+
+include_once __DIR__ . "/../../controladores/Controller_UserSetup.php"; ///
+
 include_once __DIR__ . "/../../controladores/Controller_UserChangeData.php";
 include_once __DIR__ . "/../../controladores/Controller_Sign.php";
 
@@ -23,15 +32,15 @@ if (strlen($route) === 0 || $route[0] !== '/') {
 }
 
 // Lectura de body JSON
+
 $input_raw = file_get_contents("php://input");
 $data = (array) Util_VerifyData::valid_json($input_raw);
-
 // Validar estructura JSON únicamente si el método requiere un body obligatorio
 if (!is_array($data) && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-    Util_HttpResponse::error(http_bad_request, "No puede hacer esta petición sin un JSON válido en el body")->send();
+    $code = Util_Code::create(StatusCode::ERROR, LayerCode::VIEW, "ApiAdminSys", "InvalidJson");
+    Util_HttpResponse::error($code, http_bad_request, "No puede hacer esta petición sin un JSON válido en el body")->send();
     exit();
 }
-
 
 process_http_request($method, $route, $data);
 
@@ -39,37 +48,47 @@ function process_http_request(string $method, string $route, array $data) {
     $response = match ($method) {
         "POST"    => handle_post($route, $data),
         "PUT"     => handle_put($route, $data),
-        "OPTIONS" => Util_HttpResponse::ok(json_decode(file_get_contents("opciones user.json"), true) ?? []),
-        default   => Util_HttpResponse::error(http_bad_request, "Método {$method} no permitido en esta ruta")
+        "OPTIONS" => Util_HttpResponse::ok(
+            Util_Code::create(StatusCode::OK, LayerCode::VIEW, "ApiAdminSys", "OptionsFetched"),
+            json_decode(file_get_contents("opciones user.json"), true) ?? []
+        ),
+        default   => Util_HttpResponse::error(
+            Util_Code::create(StatusCode::ERROR, LayerCode::VIEW, "ApiAdminSys", "MethodNotAllowed"),
+            http_bad_request,
+            "Método {$method} no permitido en esta ruta"
+        )
     };
-    
     $response->send();
 }
 
 function handle_post(string $route, array $data): Util_HttpResponse {
-
     switch ($route) {
-        //incio de sesion
-        case "/sign/in":  return Controller_Sign::sign_in($data);
+        // Inicio de sesión
+        case "/sign/in": return Controller_Sign::sign_in($data);
 
-        //creacion de sesion
-        case "/sign/up":  return Controller_Sign::sign_up($data);
+        // Creación de sesión
+        case "/sign/up": return Controller_Sign::sign_up($data);
 
-        //error generico
-        default:          return Util_HttpResponse::error(http_not_found, "Ruta \"{$route}\" no encontrada en POST");
+        // Error genérico de ruta no encontrada
+        default: return Util_HttpResponse::error(
+            Util_Code::create(StatusCode::ERROR, LayerCode::VIEW, "ApiAdminSys", "PathNotFound"),
+            http_not_found
+        );
     }
 }
 
 function handle_put(string $route, array $data): Util_HttpResponse {
     switch ($route) {
-
         // Usa Controller_UserChangeData::user_change_data_by_user
-        case "/profile":  return Controller_UserChangeData::user_change_data_by_user($data);
+        case "/profile": return Controller_UserChangeData::user_change_data_by_user($data);
 
         // Completa la configuración/datos del usuario
         case "/complete": return Controller_UserSetup::complete_user($data);
 
-        //error generico
-        default:          return Util_HttpResponse::error(http_not_found, "Ruta \"{$route}\" no encontrada en PUT");
+        // Error genérico de ruta no encontrada
+        default: return Util_HttpResponse::error(
+            Util_Code::create(StatusCode::ERROR, LayerCode::VIEW, "ApiAdminSys", "PathNotFound"),
+            http_not_found
+        );
     }
 }

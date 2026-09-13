@@ -3,10 +3,12 @@ include_once __DIR__ . "/../constantes/Const_Json.php";
 include_once __DIR__ . "/../utils/Util_VerifyData.php";
 include_once __DIR__ . "/../utils/Util_Code.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
+include_once __DIR__ . "/../utils/Util_Translator.php";
 
 class Controller_Auth {
     private const secret_key = "UnViMáMiGe_PaVen_Tip.Emp_huuuuuum";
     private const type_log = "AUTH CONTROLLER";
+    private const SYS_NAME = "ApiAdminSys";
 
     public static function create_token(array $user, ...$extra_data): ?array 
     {
@@ -102,7 +104,7 @@ class Controller_Auth {
         if (!array_key_exists(json_token, $data)) {
             Model_Log::add_log_user(0, self::type_log, "Intento de acceso rechazado a funcionalidad '{$type_user}': Token ausente");
             $res = Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::type_log, "No se puede usar opciones de {$type_user} sin un token."),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "TokenMissing"),
                 http_bad_request
             );
             $res->send();
@@ -115,7 +117,7 @@ class Controller_Auth {
             $ci = $data[json_token][json_user][json_ci] ?? 0;
             Model_Log::add_log_user($ci, self::type_log, "Acceso no autorizado rechazado para el rol '{$type_user}'");
             $res = Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::type_log, "El token no es valido"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidToken"),
                 http_unaunthorize
             );
             $res->send();
@@ -125,7 +127,7 @@ class Controller_Auth {
         if (is_null($auth)) {
             Model_Log::add_log_user(0, self::type_log, "Error en estructura de token durante verificacion de rol '{$type_user}'");
             $res = Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::type_log, "Error en los datos del token"),
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "TokenDataError"),
                 http_bad_request
             );
             $res->send();
