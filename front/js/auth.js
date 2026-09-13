@@ -2,14 +2,30 @@
  * auth.js
  * Única función: manejar la sesión del usuario logueado (guardarla, leerla,
  * cerrarla) y las dos acciones de autenticación (iniciar sesión / registrar
- * solicitud). Usa "api" para hablar con el servidor, pero no toca el DOM.
+ * solicitud), hablando con ApiCliente.fetchDatos(). No toca el DOM.
  */
 
-class AuthManager {
-  constructor(apiCliente) {
-    this.api = apiCliente;
-  }
+// Traducciones propias de esta pantalla: lo que AuthManager espera poder
+// mostrarle al usuario para los códigos que puede devolver /user/sign/in
+// y /user/sign/up.
+const LISTA_MAPEO_AUTH = {
+  'Error C ApiAdminSys NegativeCi': 'La cédula no puede ser negativa.',
+  'Error C ApiAdminSys CiTooLong': 'La cédula ingresada es demasiado larga.',
+  'Error C ApiAdminSys InvalidCiFormat': 'El formato de la cédula no es válido.',
+  'Error C ApiAdminSys InvalidPasswordFormat': 'El formato de la contraseña no es válido.',
+  'Error C ApiAdminSys InvalidUserPayload': 'Los datos ingresados no son válidos.',
+  'Error C ApiAdminSys InvalidUserType': 'El tipo de usuario seleccionado no es válido.',
+  'Error C ApiAdminSys UserNotFound': 'La cédula ingresada no está registrada.',
+  'Error C ApiAdminSys StoredPassMissing': 'No pudimos validar tu contraseña. Contactá a un administrador.',
+  'Error C ApiAdminSys WrongPassword': 'La contraseña ingresada es incorrecta.',
+  'Error C ApiAdminSys SignInException': 'No se pudo iniciar sesión. Intentá de nuevo.',
+  'Error C ApiAdminSys UserAlreadyExists': 'Ya existe una cuenta o solicitud con esa cédula.',
+  'Error C ApiAdminSys SignUpException': 'No se pudo enviar la solicitud. Intentá de nuevo.',
+  'OK C ApiAdminSys SignInOk': 'Sesión iniciada correctamente.',
+  'OK C ApiAdminSys SignUpRequested': 'Solicitud enviada correctamente.'
+};
 
+class AuthManager {
   get _sesion() {
     const guardado = sessionStorage.getItem(CONFIG.STORAGE_KEY_SESION);
     return guardado ? JSON.parse(guardado) : null;
@@ -47,31 +63,61 @@ class AuthManager {
     return u ? Boolean(u.COMPLETEUSER) : false;
   }
 
-  /**
-   * Forma de TOKEN que piden los endpoints de admin sistema: solo la
-   * cédula del admin logueado.
-   */
-  tokenAdmin() {
-    return { CI: this.ci() };
+  firma() {
+    const s = this._sesion;
+    return s ? s.firma : null;
   }
 
-  /**
-   * Forma de TOKEN que pide /user/profile: el usuario completo devuelto
-   * por el login.
-   */
+  /** Forma de TOKEN que piden los endpoints de admin sistema.
+   * DESECHADO POR AHORA
+  tokenAdmin() {
+    return { 
+      USER: { CI: this.ci() }, 
+      SIGNATURE: this.firma() 
+    };
+  } */
+
+  /** Forma de TOKEN que pide /user/profile: el usuario completo del login. */
   tokenUsuario() {
-    return this.usuarioActual();
+    return {
+      USER: this.usuarioActual(),
+      SIGNATURE: this.firma()
+    };
   }
 
   async iniciarSesion(ci, password) {
-    const respuesta = await this.api.iniciarSesion(ci, password);
-    const usuario = respuesta.TOKEN.USER;
-    this._sesion = { usuario, firma: respuesta.TOKEN.SIGNATURE };
-    return usuario;
+    const resultado = await ApiCliente.fetchDatos('SIGN_IN', {
+      USER: { CI: Number(ci), PASSWORD: password }
+    }, LISTA_MAPEO_AUTH);
+
+    if (resultado.esError) throw new Error(resultado.mensajeUsuario);
+
+    const token = resultado.TOKEN;
+    if (!token || !token.USER) throw new Error('Error interno, intentalo más tarde.');
+
+    this._sesion = { usuario: token.USER, firma: token.SIGNATURE };
+    return token.USER;
   }
 
-  registrarSolicitud(ci, password, tipoUsuario) {
-    return this.api.registrarSolicitud(ci, password, tipoUsuario);
+  /**
+   * Se llama después de que /user/complete confirma que el perfil ya
+   * quedó completo, para no tener que volver a loguearse para que se
+   * refleje en la sesión guardada.
+   */
+  marcarPerfilCompleto() {
+    const sesion = this._sesion;
+    if (!sesion) return;
+    sesion.usuario.COMPLETEUSER = true;
+    this._sesion = sesion;
+  }
+
+  async registrarSolicitud(ci, password, tipoUsuario) {
+    const resultado = await ApiCliente.fetchDatos('SIGN_UP', {
+      USER: { CI: Number(ci), PASSWORD: password, TYPEUSER: tipoUsuario }
+    }, LISTA_MAPEO_AUTH);
+
+    if (resultado.esError) throw new Error(resultado.mensajeUsuario);
+    return resultado;
   }
 
   cerrarSesion() {
@@ -79,4 +125,4 @@ class AuthManager {
   }
 }
 
-const auth = new AuthManager(api);
+const auth = new AuthManager();

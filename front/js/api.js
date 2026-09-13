@@ -1,191 +1,139 @@
 /**
  * api.js
- * Única función: comunicarse con la API. No sabe nada de sesión, ni de HTML,
- * ni de cómo se pinta la pantalla. Solo arma peticiones y devuelve datos.
+ * Única función: ejecutar peticiones contra la API a partir de las claves
+ * definidas en RUTAS_API (constants.js), y traducir siempre la respuesta
+ * con CodeTranslator antes de devolverla.
  */
 
-class ApiError extends Error {
-  constructor(mensaje, status, cuerpo) {
-    super(mensaje);
-    this.name = 'ApiError';
-    this.status = status;
-    this.cuerpo = cuerpo;
-  }
-}
-
 class ApiCliente {
-  constructor(baseUrl) {
-    this.baseUrl = baseUrl;
-  }
-
   /**
-   * Hace la petición HTTP de verdad.
-   *
-   * OJO: la documentación de la API pide mandar un "body" JSON incluso en los
-   * métodos GET (TOKEN, USER, TYPEUSER, etc). Los navegadores, por spec de
-   * fetch/XHR, NO permiten mandar body en peticiones GET/HEAD (lo descartan
-   * solos). Por eso acá, para GET, los datos van como query string en un
-   * parámetro "payload" en vez de ir en el body. Si el backend espera
-   * recibirlos de otra forma para GET, avisame y lo ajustamos.
+   * @param {string} urlKey      Clave de RUTAS_API (ej: "SIGN_IN").
+   * @param {object} [body]      Body a enviar (o payload en query si es GET).
+   * @param {object} [listaMapeo] Traducciones propias del controlador que llama.
+   * @returns {Promise<object>}  Todo el body devuelto por el backend, más
+   *                             { codigo, esError, mensajeUsuario }.
    */
-  async _peticion(metodo, ruta, datos) {
-    let url = this.baseUrl + ruta;
+  static async fetchDatos(urlKey, body, listaMapeo) {
+    const ruta = RUTAS_API[urlKey];
+
+    if (!ruta) {
+      console.error(`[API] La clave "${urlKey}" no existe en RUTAS_API.`);
+      return this._empaquetar(null, null, listaMapeo);
+    }
+
     const opciones = {
-      method: metodo,
+      method: ruta.metodo,
       headers: { 'Content-Type': 'application/json' }
     };
 
-    if (metodo === 'GET' || metodo === 'HEAD') {
-      if (datos) {
-        url += '?payload=' + encodeURIComponent(JSON.stringify(datos));
-      }
-    } else if (datos) {
-      opciones.body = JSON.stringify(datos);
+
+    let url = URL_BASE + ruta.endpoint;
+    if (ruta.metodo === 'GET' || ruta.metodo === 'HEAD' || ruta.metodo === 'DELETE') {
+      if (body) url += '?payload=' + encodeURIComponent(JSON.stringify(body));
+    } else if (body) {
+      opciones.body = JSON.stringify(body);
     }
 
-    let respuesta;
-    try {
-      respuesta = await fetch(url, opciones);
-    } catch (errorRed) {
-      throw new ApiError('No se pudo conectar con el servidor.', 0, null);
-    }
-
-    const tipoContenido = respuesta.headers.get('content-type') || '';
     let cuerpo = null;
-    if (tipoContenido.includes('application/json')) {
-      cuerpo = await respuesta.json().catch(() => null);
+    let codigo = null;
+
+    try {
+
+      const respuesta = await fetch(url, opciones);
+      
+      // Capturamos el texto crudo para ver qué carajo está respondiendo el server
+      const textoCrudo = await respuesta.text();
+      
+
+      // Intentamos parsearlo a JSON a mano
+      cuerpo = textoCrudo ? JSON.parse(textoCrudo) : null;
+      codigo = this._extraerCodigo(cuerpo);
+    } catch (errorRed) {
+      console.error(`[API] Error parseando JSON en ${urlKey}:`, errorRed);
+      codigo = 'Error U ApiCliente ConnectionFailed';
+    }
+
+    if (codigo && CodeTranslator.esError(codigo)) {
+      console.error(`[API] ${ruta.metodo} ${ruta.endpoint} → ${CodeTranslator.traducirConsola(codigo)}`);
+    }
+
+    return this._empaquetar(cuerpo, codigo, listaMapeo);
+  }
+
+  /**
+   * Arma el objeto de retorno: todo el body original del fetch (ya
+   * aplanado, ver _normalizar), más el código crudo, si es error o no, y
+   * la traducción para el usuario.
+   */
+  static _empaquetar(cuerpo, codigo, listaMapeo) {
+    return {
+      ...this._normalizar(cuerpo),
+      codigo,
+      esError: codigo ? CodeTranslator.esError(codigo) : false,
+      mensajeUsuario: CodeTranslator.traducirUsuario(codigo, listaMapeo)
+    };
+  }
+
+  /**
+   * El backend responde SIEMPRE con un array de "bloques": el primero
+   * suele ser { CODE: "..." } y los siguientes son los datos en sí, que
+   * pueden venir como objeto con claves con nombre (TOKEN, mensaje,
+   * EXISTS, el mapa CI->TYPEUSER, etc.) o como una lista cruda (ej. en
+   * /requests o en los logs). Esta función junta todo eso en un único
+   * objeto plano, para que el resto del código pueda leer
+   * "resultado.TOKEN" o "resultado.mensaje" directo, sin tener que andar
+   * recorriendo el array a mano.
+   *
+   * - Bloques objeto: se combinan sus claves en el resultado (el CODE se
+   *   descarta acá porque ya se extrajo aparte).
+   * - Bloques que son ellos mismos un array (una lista de datos): se
+   *   guardan en resultado.datos.
+   */
+  static _normalizar(cuerpo) {
+    if (Array.isArray(cuerpo)) {
+      const resultado = {};
+      for (const bloque of cuerpo) {
+        if (Array.isArray(bloque)) {
+          resultado.datos = bloque;
+        } else if (bloque && typeof bloque === 'object') {
+          for (const [clave, valor] of Object.entries(bloque)) {
+            if (clave === 'CODE') continue;
+            resultado[clave] = valor;
+          }
+        }
+      }
+      return resultado;
+    }
+
+    if (cuerpo && typeof cuerpo === 'object') {
+      const { CODE, ...resto } = cuerpo;
+      return resto;
+    }
+
+    return (cuerpo === null || cuerpo === undefined) ? {} : { datos: cuerpo };
+  }
+
+  /**
+   * Busca recursivamente el atributo CODE dentro de la respuesta HTTP de PHP.
+   */
+  static _extraerCodigo(cuerpo) {
+    if (!cuerpo || typeof cuerpo !== 'object') return null;
+    if (cuerpo.CODE) return cuerpo.CODE;
+
+    if (Array.isArray(cuerpo)) {
+      for (const item of cuerpo) {
+        const encontrado = this._extraerCodigo(item);
+        if (encontrado) return encontrado;
+      }
     } else {
-      cuerpo = await respuesta.text().catch(() => null);
+      for (const clave of Object.keys(cuerpo)) {
+        if (typeof cuerpo[clave] === 'object' && cuerpo[clave] !== null) {
+          const encontrado = this._extraerCodigo(cuerpo[clave]);
+          if (encontrado) return encontrado;
+        }
+      }
     }
 
-    if (!respuesta.ok) {
-      const mensaje = (cuerpo && cuerpo.mensaje) ? cuerpo.mensaje : 'Ocurrió un error al comunicarse con el servidor.';
-      throw new ApiError(mensaje, respuesta.status, cuerpo);
-    }
-
-    return cuerpo;
-  }
-
-  // ---------------- Autenticación (POST) ----------------
-
-  iniciarSesion(ci, password) {
-    return this._peticion('POST', '/user/sign/in', {
-      USER: { CI: Number(ci), PASSWORD: password }
-    });
-  }
-
-  registrarSolicitud(ci, password, tipoUsuario) {
-    return this._peticion('POST', '/user/sign/up', {
-      USER: { CI: Number(ci), PASSWORD: password, TYPEUSER: tipoUsuario }
-    });
-  }
-
-  // ---------------- Usuario regular (PUT) ----------------
-
-  actualizarPerfilPropio(tokenUsuario, cambios) {
-    return this._peticion('PUT', '/user/profile', {
-      TOKEN: { USER: tokenUsuario },
-      USER: cambios
-    });
-  }
-
-  completarPerfil(ci, nombre, apellido) {
-    return this._peticion('PUT', '/user/complete', {
-      TOKEN: { CI: Number(ci) },
-      USER: { FIRSTNAME: nombre, LASTNAME: apellido }
-    });
-  }
-
-  // ---------------- Admin sistema: usuarios ----------------
-
-  obtenerUsuarios(tokenAdmin, tipoUsuario) {
-    return this._peticion('GET', '/user/adminsys/users', {
-      TOKEN: tokenAdmin,
-      TYPEUSER: tipoUsuario || undefined
-    });
-  }
-
-  existeUsuario(tokenAdmin, ciConsultado, tipoUsuario) {
-    return this._peticion('GET', '/user/adminsys/user/exists', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciConsultado), TYPEUSER: tipoUsuario || undefined }
-    });
-  }
-
-  obtenerDatosUsuario(tokenAdmin, ciConsultado) {
-    return this._peticion('GET', '/user/adminsys/user/data', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciConsultado) }
-    });
-  }
-
-  modificarDatosUsuario(tokenAdmin, ciObjetivo, cambios) {
-    return this._peticion('PUT', '/user/adminsys/user/data', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciObjetivo), ...cambios }
-    });
-  }
-
-  eliminarUsuario(tokenAdmin, ciObjetivo) {
-    return this._peticion('DELETE', '/user/adminsys/user', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciObjetivo) }
-    });
-  }
-
-  // ---------------- Admin sistema: solicitudes ----------------
-
-  obtenerSolicitudes(tokenAdmin, tipoUsuario) {
-    return this._peticion('GET', '/user/adminsys/requests', {
-      TOKEN: tokenAdmin,
-      TYPEUSER: tipoUsuario || undefined
-    });
-  }
-
-  existeSolicitud(tokenAdmin, ciConsultado, tipoUsuario) {
-    return this._peticion('GET', '/user/adminsys/requests/exists', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciConsultado), TYPEUSER: tipoUsuario || undefined }
-    });
-  }
-
-  aceptarSolicitud(tokenAdmin, ciObjetivo, tipoUsuario) {
-    return this._peticion('POST', '/user/adminsys/requests/accept', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciObjetivo), TYPEUSER: tipoUsuario }
-    });
-  }
-
-  rechazarSolicitud(tokenAdmin, ciObjetivo) {
-    return this._peticion('DELETE', '/user/adminsys/requests', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciObjetivo) }
-    });
-  }
-
-  // ---------------- Admin sistema: logs ----------------
-
-  obtenerLogsUsuario(tokenAdmin, ciConsultado, tipoLog) {
-    return this._peticion('GET', '/user/adminsys/logs/user', {
-      TOKEN: tokenAdmin,
-      USER: { CI: Number(ciConsultado), TYPELOG: tipoLog || undefined }
-    });
-  }
-
-  obtenerLogsUsuarios(tokenAdmin, tipoUsuario, tipoLog) {
-    return this._peticion('GET', '/user/adminsys/logs/users', {
-      TOKEN: tokenAdmin,
-      TYPEUSER: tipoUsuario || undefined,
-      TYPELOG: tipoLog || undefined
-    });
-  }
-
-  obtenerLogsSql(tokenAdmin) {
-    return this._peticion('GET', '/user/adminsys/logs/sql', {
-      TOKEN: tokenAdmin
-    });
+    return null;
   }
 }
-
-// Instancia única que usa el resto de la app.
-const api = new ApiCliente(CONFIG.API_BASE_URL);

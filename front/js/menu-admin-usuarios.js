@@ -5,6 +5,16 @@
  * puntual y borrarlo). Usa <template> del HTML, nunca arma HTML a mano.
  */
 
+const LISTA_MAPEO_USUARIOS = {
+  'Error C ApiAdminSys GetUsersError': 'No se pudo obtener la lista de usuarios.',
+  'Error C ApiAdminSys GetUserDataError': 'No se pudieron obtener los datos del usuario.',
+  'Error C ApiAdminSys DeleteUserError': 'No se pudo borrar el usuario.',
+  'Error C ApiAdminSys UserNotFound': 'El usuario no existe.',
+  'Error C ApiAdminSys InvalidTargetCi': 'La cédula indicada no es válida.',
+  'Error C ApiAdminSys InvalidMissingDataProvided': 'Los datos ingresados no son válidos.',
+  'Error C ApiAdminSys InvalidPasswordFormat': 'El formato de la contraseña no es válido.'
+};
+
 const MenuAdminUsuarios = {
   _usuarios: [],
 
@@ -32,13 +42,24 @@ const MenuAdminUsuarios = {
   async _cargar() {
     usuarios_tabla_cuerpo.replaceChildren();
     usuarios_tabla_vacia.classList.add('hidden');
-    try {
-      const mapa = await api.obtenerUsuarios(auth.tokenAdmin(), usuarios_filtro_tipo.value);
-      this._usuarios = Object.entries(mapa || {});
-      this._pintar(this._usuarios);
-    } catch (error) {
-      this._mostrarErrorTabla(error.message);
+
+    // 1. Armamos el token base
+    const payload = {
+      TOKEN: auth.tokenUsuario()
+    };
+
+    const resultado = await ApiCliente.fetchDatos('USERS', payload, LISTA_MAPEO_USUARIOS);
+
+    if (resultado.esError) {
+      this._mostrarErrorTabla(resultado.mensajeUsuario);
+      return;
     }
+
+    // El endpoint devuelve un objeto clave-valor (CI -> TYPEUSER); ApiCliente
+    // ya lo esparció junto al resto de las propiedades del resultado.
+    const { codigo, esError, mensajeUsuario, ...mapa } = resultado;
+    this._usuarios = Object.entries(mapa);
+    this._pintar(this._usuarios);
   },
 
   _filtrarPorBusqueda() {
@@ -86,15 +107,19 @@ const MenuAdminUsuarios = {
 
     Modal.abrir('Datos del usuario', contenedor);
 
-    try {
-      const datos = await api.obtenerDatosUsuario(auth.tokenAdmin(), ci);
-      aviso.textContent = 'CI ' + datos.CI + ' — ' + etiquetaTipoUsuario(datos.TYPEUSER);
-      form.FIRSTNAME.value = datos.FIRSTNAME || '';
-      form.LASTNAME.value = datos.LASTNAME || '';
-    } catch (error) {
-      this._mostrarMensajeForm(mensaje, error.message, 'error');
+    const datos = await ApiCliente.fetchDatos('USER_DATA', {
+      TOKEN: auth.tokenUsuario(),
+      USER: { CI: Number(ci) }
+    }, LISTA_MAPEO_USUARIOS);
+
+    if (datos.esError) {
+      this._mostrarMensajeForm(mensaje, datos.mensajeUsuario, 'error');
       return;
     }
+
+    aviso.textContent = 'CI ' + datos.CI + ' — ' + etiquetaTipoUsuario(datos.TYPEUSER);
+    form.FIRSTNAME.value = datos.FIRSTNAME || '';
+    form.LASTNAME.value = datos.LASTNAME || '';
 
     form.addEventListener('submit', async (evento) => {
       evento.preventDefault();
@@ -103,13 +128,18 @@ const MenuAdminUsuarios = {
       if (form.LASTNAME.value.trim()) cambios.LASTNAME = form.LASTNAME.value.trim();
       if (form.PASSWORD.value) cambios.PASSWORD = form.PASSWORD.value;
 
-      try {
-        const respuesta = await api.modificarDatosUsuario(auth.tokenAdmin(), ci, cambios);
-        this._mostrarMensajeForm(mensaje, respuesta.mensaje || 'Datos actualizados.', 'exito');
-        form.PASSWORD.value = '';
-      } catch (error) {
-        this._mostrarMensajeForm(mensaje, error.message, 'error');
+      const resultado = await ApiCliente.fetchDatos('USER_DATA_UPDATE', {
+        TOKEN: auth.tokenUsuario(),
+        USER: { CI: Number(ci), ...cambios }
+      }, LISTA_MAPEO_USUARIOS);
+
+      if (resultado.esError) {
+        this._mostrarMensajeForm(mensaje, resultado.mensajeUsuario, 'error');
+        return;
       }
+
+      this._mostrarMensajeForm(mensaje, resultado.mensaje || resultado.mensajeUsuario, 'exito');
+      form.PASSWORD.value = '';
     });
   },
 
@@ -117,13 +147,18 @@ const MenuAdminUsuarios = {
     const confirmado = await Modal.confirmar('¿Seguro que querés borrar este usuario?');
     if (!confirmado) return;
 
-    try {
-      await api.eliminarUsuario(auth.tokenAdmin(), ci);
-      Modal.cerrar();
-      await this._cargar();
-    } catch (error) {
-      this._mostrarErrorTabla(error.message);
+    const resultado = await ApiCliente.fetchDatos('USER_DELETE', {
+      TOKEN: auth.tokenUsuario(),
+      USER: { CI: Number(ci) }
+    }, LISTA_MAPEO_USUARIOS);
+
+    if (resultado.esError) {
+      this._mostrarErrorTabla(resultado.mensajeUsuario);
+      return;
     }
+
+    Modal.cerrar();
+    await this._cargar();
   },
 
   _mostrarMensajeForm(elemento, texto, tipo) {

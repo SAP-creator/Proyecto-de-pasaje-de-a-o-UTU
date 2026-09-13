@@ -1,130 +1,79 @@
+/**
+ * code-translator.js
+ * Única función: traducir los códigos de respuesta del backend.
+ *
+ * Formato del código: "[ESTADO] [CAPA] [SISTEMA] [MENSAJE]"
+ * Ej: "Error C ApiAdminSys InvalidToken"
+ */
+
 class CodeTranslator {
-  static STATUS_MAP = {
-    'OK': 'Operación exitosa',
-    'Error': 'Error'
+  // Diccionario base, lo más chico posible: solo lo genérico que puede
+  // pasarle a cualquier controlador. Cada pantalla le suma lo suyo a
+  // través de "listaMapeo" en traducirUsuario().
+  static MapaBasicoTraduccion = {
+    'Error V ApiAdminSys MethodNotAllowed': 'Método no permitido.',
+    'Error V ApiAdminSys PathNotFound': 'Ruta no encontrada.',
+    'Error V ApiAdminSys InvalidJson': 'Los datos enviados no son válidos.',
+    'Error V TEAPOT TEAPOT': 'Soy una tetera.',
+    'Error C ApiAdminSys InvalidToken': 'Tu sesión no es válida. Iniciá sesión de nuevo.',
+    'Error C ApiAdminSys AdminAccessDenied': 'No tenés permisos para hacer esto.',
+    'Error U ApiCliente ConnectionFailed': 'No se pudo conectar con el servidor.'
   };
 
-  static LAYER_MAP = {
-    'V': 'Interfaz de usuario',
-    'C': 'Controlador de lógica',
-    'M': 'Base de datos / Modelo'
-  };
+  static _CAPAS = { V: 'Vista', C: 'Controlador', M: 'Modelo', U: 'Utilidad' };
 
-  // Diccionario exclusivo para mensajes dirigidos al usuario final
-  static MESSAGE_MAP = {
-    'OK C Auth UserLoggedSuccessfully': 'Has iniciado sesión correctamente.',
-    'Error M Billing DatabaseConnectionFailed': 'No pudimos procesar tu pago. Inténtalo más tarde.',
-    'Error C User InvalidPassword': 'La contraseña ingresada es incorrecta.',
-    'OK_Auth_UserNotFound': 'El usuario no se encuentra registrado.'
-  };
-
-  /**
-   * Método para la interfaz de usuario (UI)
-   * Devuelve solo el código original y el texto amigable.
-   * @param {string} codeString 
-   * 
-   * Es la lista que de mensajes que puede traducir. 
-   * Formatos
-   *  - ESTADO_Controlador_NombreMensaje
-   *  - ESTADO MVC Controlador NombreMensaje
-   *   
-   * 
-   * @parm messageMap
-   * @returns {{code: string, text: string}}
-   */
-  static translateForUser(codeString, messageMap) {
-    if (!codeString || typeof codeString !== 'string') {
-      return { code: codeString || '', text: 'Error desconocido' };
-    }
-
-    const cleanCode = codeString.trim();
-
-    // 1. Busca coincidencia exacta del código completo en el diccionario
-    if (messageMap[cleanCode]) {
-      return { code: cleanCode, text: messageMap[cleanCode] };
-    }
-
-    const parts = cleanCode.split(/\s+/);
-    if (parts.length >= 4) {
-      const [status, layer, systemName, ...messageParts] = parts;
-      const rawMessage = messageParts.join(' ');
-
-      // 2. Busca por clave combinada "Sistema_Mensaje"
-      const systemKey = `${systemName}_${rawMessage}`;
-      if (messageMap[systemKey]) {
-        return { code: cleanCode, text: messageMap[systemKey] };
-      }
-
-      // 3. Si no tiene traducción amigable, evalúa el estado base
-      if (status === 'OK') {
-        return { code: cleanCode, text: 'OK' };
-      }
-    }
-
-    // Fallback cuando es un error no registrado en el diccionario
-    return { code: cleanCode, text: 'Error desconocido' };
+  static _partir(codigo) {
+    if (!codigo || typeof codigo !== 'string') return null;
+    const partes = codigo.trim().split(/\s+/);
+    if (partes.length < 4) return null;
+    const [estado, capa, sistema, ...resto] = partes;
+    return { estado, capa, sistema, mensaje: resto.join(' ') };
   }
 
   /**
-   * Método para logs y depuración técnica en consola
-   * @param {string} codeString 
-   * @param {boolean} showLayer - Si añade la capa (V/C/M)
-   * @param {boolean} showRaw - Si añade el mensaje técnico original
-   * @returns {{code: string, text: string}}
+   * Traduce el código a un formato técnico, para mandar directo a la
+   * consola de depuración.
+   * Ej: "Error en Controlador llamado ApiAdminSys -- InvalidToken"
    */
-  static translateForConsole(codeString, showLayer = true, showRaw = true) {
-    if (!codeString || typeof codeString !== 'string') {
-      return { code: codeString || '', text: 'Error desconocido' };
-    }
+  static traducirConsola(codigo) {
+    const partido = this._partir(codigo);
+    if (!partido) return codigo || 'Código de error desconocido';
 
-    const cleanCode = codeString.trim();
-    const parts = cleanCode.split(/\s+/);
+    const estadoTexto = partido.estado === 'OK' ? 'Operación exitosa' : 'Error';
+    const capaTexto = this._CAPAS[partido.capa] || partido.capa;
 
-    if (parts.length < 4) {
-      return { code: cleanCode, text: 'Error desconocido' };
-    }
-
-    const [status, layer, systemName, ...messageParts] = parts;
-    const rawMessage = messageParts.join(' ');
-
-    const statusText = this.STATUS_MAP[status];
-    const layerText = this.LAYER_MAP[layer];
-
-    if (!statusText || !layerText) {
-      return { code: cleanCode, text: 'Error desconocido' };
-    }
-
-    let text = `${statusText} en ${systemName}`;
-
-    if (showLayer) {
-      text += ` (${layerText})`;
-    }
-
-    if (showRaw) {
-      text += `: ${rawMessage}`;
-    }
-
-    return { code: cleanCode, text: text };
+    return `${estadoTexto} en ${capaTexto} llamado ${partido.sistema} -- ${partido.mensaje}`;
   }
 
   /**
-   * 
-   * @param {*} codeString 
-   * 
-   * @return True False o Null (fallo en la busqueda)
+   * Indica si el código representa un error (todo lo que no empieza con
+   * "OK"). Si el código no tiene el formato esperado, se asume error para
+   * no dejar pasar por éxito algo que no pudimos interpretar.
    */
-  static is_errorCode(codeString){
-    if (!codeString || typeof codeString !== 'string') 
-      return null;
-    
+  static esError(codigo) {
+    const partido = this._partir(codigo);
+    if (!partido) return true;
+    return partido.estado !== 'OK';
+  }
 
-    if (codeString.includes('OK'))
-      return false;
-  
-    if (codeString.includes('Error'))
-      return true;
+  /**
+   * Busca el código en MapaBasicoTraduccion combinado con listaMapeo
+   * (el mapa propio del controlador que llama). Si no lo encuentra en
+   * ninguno de los dos, retorna "OK" o "Error desconocido" según corresponda.
+   */
+  static traducirUsuario(codigo, listaMapeo) {
+    if (!codigo || typeof codigo !== 'string') return 'Error desconocido';
 
-    return null;
+    const mapaCompleto = { ...CodeTranslator.MapaBasicoTraduccion, ...(listaMapeo || {}) };
+    if (mapaCompleto[codigo.trim()]) {
+      return mapaCompleto[codigo.trim()];
+    }
 
+    const partido = this._partir(codigo);
+    if (partido && partido.estado === 'OK') {
+      return 'OK';
+    }
+
+    return 'Error desconocido';
   }
 }
