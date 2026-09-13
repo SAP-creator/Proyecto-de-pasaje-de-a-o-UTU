@@ -3,6 +3,7 @@
 include_once __DIR__ . "/../modelo/Model_User.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
+include_once __DIR__ . "/../utils/Util_Code.php";
 include_once __DIR__ . "/../utils/Util_Translator.php";
 include_once __DIR__ . "/../utils/Util_VerifyData.php";
 include_once __DIR__ . "/../constantes/Const_Json.php";
@@ -41,6 +42,7 @@ class Controller_UserSetup
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Acceso denegado: El usuario tiene el perfil incompleto");
 
             Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Acceso denegado: El usuario tiene el perfil incompleto"),
                 http_forbidden,
                 [json_error => "Usuario incompleto, por favor complete los datos para continuar"],
                 $translated_fields
@@ -50,7 +52,10 @@ class Controller_UserSetup
         
         // Error fallback si ocurrió un problema en la consulta
         Model_Log::add_log_user($ci, self::LOG_TYPE, "Error interno al verificar si el usuario está completo");
-        Util_HttpResponse::error(http_internal_error)->send();
+        Util_HttpResponse::error(
+            Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Error interno al verificar si el usuario está completo"),
+            http_internal_error
+        )->send();
         exit;
     }
 
@@ -89,7 +94,10 @@ class Controller_UserSetup
     {
         if (Controller_Auth::comprobate_token($data) !== true) {
             Model_Log::add_log_user(0, self::LOG_TYPE, "Intento de completar usuario fallido: Token inválido");
-            return Util_HttpResponse::error(http_forbidden, "No tienes un token válido");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No tienes un token válido"),
+                http_forbidden
+            );
         }
 
         $ci = (int) (Util_VerifyData::verify_and_get_from_token($data, json_ci) ?? 0);
@@ -98,7 +106,9 @@ class Controller_UserSetup
         $is_complete_flag = Util_VerifyData::verify_and_get_from_token($data, json_completeuser);
         if ($is_complete_flag === true || $is_complete_flag === 1 || $is_complete_flag === 's') {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Completado omitido: El usuario ya posee el perfil completo");
-            return Util_HttpResponse::ok("El usuario ya está completo");
+            return Util_HttpResponse::ok(
+                Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::LOG_TYPE, "El usuario ya está completo")
+            );
         }
 
         // Obtener los datos faltantes de la BD
@@ -106,12 +116,17 @@ class Controller_UserSetup
 
         if (is_null($untranslate_incomplete_data)) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Error interno al recuperar datos faltantes para completar perfil");
-            return Util_HttpResponse::error(http_internal_error, "Error en la base de datos");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "Error en la base de datos"),
+                http_internal_error
+            );
         }
 
         if (empty($untranslate_incomplete_data)) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Completado omitido: Todos los datos ya están ingresados en BD");
-            return Util_HttpResponse::ok("Están todos los datos completos");
+            return Util_HttpResponse::ok(
+                Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::LOG_TYPE, "Están todos los datos completos")
+            );
         }
 
         // Traducir campos faltantes de SQL a JSON
@@ -137,7 +152,10 @@ class Controller_UserSetup
 
         if (empty($data_to_change)) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Intento de completado fallido: No se enviaron datos faltantes válidos");
-            return Util_HttpResponse::error(http_bad_request, "No se enviaron datos válidos o faltantes para actualizar");
+            return Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::LOG_TYPE, "No se enviaron datos válidos o faltantes para actualizar"),
+                http_bad_request
+            );
         }
 
         $data[json_user] = $data_to_change;
