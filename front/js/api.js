@@ -5,7 +5,7 @@
  * con CodeTranslator antes de devolverla.
  */
 
-class ApiCliente {
+const ApiCliente = {
   /**
    * @param {string} urlKey      Clave de RUTAS_API (ej: "SIGN_IN").
    * @param {object} [body]      Body a enviar (o payload en query si es GET).
@@ -13,7 +13,7 @@ class ApiCliente {
    * @returns {Promise<object>}  Todo el body devuelto por el backend, más
    *                             { codigo, esError, mensajeUsuario }.
    */
-  static async fetchDatos(urlKey, body, listaMapeo) {
+  async fetchDatos(urlKey, body, listaMapeo) {
     const ruta = RUTAS_API[urlKey];
 
     if (!ruta) {
@@ -25,7 +25,6 @@ class ApiCliente {
       method: ruta.metodo,
       headers: { 'Content-Type': 'application/json' }
     };
-
 
     let url = URL_BASE + ruta.endpoint;
     if (ruta.metodo === 'GET' || ruta.metodo === 'HEAD' || ruta.metodo === 'DELETE') {
@@ -40,10 +39,10 @@ class ApiCliente {
     try {
 
       const respuesta = await fetch(url, opciones);
-      
+
       // Capturamos el texto crudo para ver qué carajo está respondiendo el server
       const textoCrudo = await respuesta.text();
-      
+
 
       // Intentamos parsearlo a JSON a mano
       cuerpo = textoCrudo ? JSON.parse(textoCrudo) : null;
@@ -58,21 +57,21 @@ class ApiCliente {
     }
 
     return this._empaquetar(cuerpo, codigo, listaMapeo);
-  }
+  },
 
   /**
    * Arma el objeto de retorno: todo el body original del fetch (ya
    * aplanado, ver _normalizar), más el código crudo, si es error o no, y
    * la traducción para el usuario.
    */
-  static _empaquetar(cuerpo, codigo, listaMapeo) {
+  _empaquetar(cuerpo, codigo, listaMapeo) {
     return {
       ...this._normalizar(cuerpo),
       codigo,
       esError: codigo ? CodeTranslator.esError(codigo) : false,
       mensajeUsuario: CodeTranslator.traducirUsuario(codigo, listaMapeo)
     };
-  }
+  },
 
   /**
    * El backend responde SIEMPRE con un array de "bloques": el primero
@@ -89,7 +88,7 @@ class ApiCliente {
    * - Bloques que son ellos mismos un array (una lista de datos): se
    *   guardan en resultado.datos.
    */
-  static _normalizar(cuerpo) {
+  _normalizar(cuerpo) {
     if (Array.isArray(cuerpo)) {
       const resultado = {};
       for (const bloque of cuerpo) {
@@ -111,12 +110,12 @@ class ApiCliente {
     }
 
     return (cuerpo === null || cuerpo === undefined) ? {} : { datos: cuerpo };
-  }
+  },
 
   /**
    * Busca recursivamente el atributo CODE dentro de la respuesta HTTP de PHP.
    */
-  static _extraerCodigo(cuerpo) {
+  _extraerCodigo(cuerpo) {
     if (!cuerpo || typeof cuerpo !== 'object') return null;
     if (cuerpo.CODE) return cuerpo.CODE;
 
@@ -136,4 +135,4 @@ class ApiCliente {
 
     return null;
   }
-}
+};
