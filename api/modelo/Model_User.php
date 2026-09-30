@@ -15,7 +15,7 @@ class Model_User
         if (empty($type)) {
             $sql = "SELECT u." . sql_cedula . ", u." . sql_tipo . " FROM " . sql_tabla_usuario . " u";
             $query_result = $db->executeQuery($sql); 
-            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener todos los usuarios");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener todos los usuarios", $sql, []);
         } else {
             if (!in_array($type, sql_usuario_tipo)) {
                 return null; 
@@ -23,7 +23,7 @@ class Model_User
 
             $sql = "SELECT u." . sql_cedula . ", u." . sql_tipo . " FROM " . sql_tabla_usuario . " u WHERE u." . sql_tipo . " = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
-            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener usuarios filtrados por tipo: {$type}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener usuarios filtrados por tipo: {$type}", $sql, [$type]);
         }
 
         if (!$query_result->success) {
@@ -40,7 +40,7 @@ class Model_User
         if (empty($type)) {
             $sql = "SELECT s." . sql_cedula . ", s." . sql_tipo . " FROM " . sql_tabla_soli_usuario . " s";
             $query_result = $db->executeQuery($sql); 
-            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener todas las solicitudes de usuarios");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener todas las solicitudes de usuarios", $sql, []);
         } else {
             if (!in_array($type, sql_usuario_tipo)) {
                 return null; 
@@ -48,7 +48,7 @@ class Model_User
 
             $sql = "SELECT s." . sql_cedula . ", s." . sql_tipo . " FROM " . sql_tabla_soli_usuario . " s WHERE s." . sql_tipo . " = ?";
             $query_result = $db->executeQuery($sql, "s", $type);
-            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener solicitudes filtradas por tipo: {$type}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Obtener solicitudes filtradas por tipo: {$type}", $sql, [$type]);
         }
 
         if (!$query_result->success) {
@@ -65,7 +65,7 @@ class Model_User
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
         
-        Model_Log::add_log_sql(self::MODEL_LOG, "Consultar usuario por cédula: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consultar usuario por cédula: {$ci}", $sql, [$ci]);
         
         if (!$query_result->success) { 
             return null; 
@@ -80,7 +80,7 @@ class Model_User
         
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Consultar solicitud por cédula: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consultar solicitud por cédula: {$ci}", $sql, [$ci]);
 
         if (!$query_result->success) { 
             return null; 
@@ -96,7 +96,7 @@ class Model_User
         if (empty($type)) {
             $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
-            Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de usuario CI: {$ci}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de usuario CI: {$ci}", $sql, [$ci]);
 
             if (!$query_result->success) { 
                 return null; 
@@ -110,7 +110,7 @@ class Model_User
 
         $sql = "SELECT 1 FROM " . sql_tabla_usuario . " WHERE " . sql_cedula . " = ? AND " . sql_tipo . " = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de usuario CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de usuario CI: {$ci} con tipo: {$type}", $sql, [$ci, $type]);
 
         if (!$query_result->success) { 
             return null; 
@@ -125,7 +125,7 @@ class Model_User
         if (empty($type)) {
             $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ?";
             $query_result = $db->executeQuery($sql, "i", $ci);
-            Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de solicitud CI: {$ci}");
+            Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de solicitud CI: {$ci}", $sql, [$ci]);
 
             if (!$query_result->success) { 
                 return null; 
@@ -139,7 +139,7 @@ class Model_User
 
         $sql = "SELECT 1 FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ? AND " . sql_tipo . " = ?";
         $query_result = $db->executeQuery($sql, "is", $ci, $type);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de solicitud CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Verificar existencia de solicitud CI: {$ci} con tipo: {$type}", $sql, [$ci, $type]);
 
         if (!$query_result->success) { 
             return null; 
@@ -153,7 +153,7 @@ class Model_User
         $db = new Util_DbConnection();
         $result = $db->executeQuery($sql, "iss", $ci, $clave, $type);
         
-        Model_Log::add_log_sql(self::MODEL_LOG, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}", $sql, [$ci, $clave, $type]);
 
         return $result->success;
     }
@@ -162,8 +162,7 @@ class Model_User
     {
         return [
             enum_tipo_vecino => [
-                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_vecino . "', true)",
-                "INSERT INTO " . sql_tabla_vecino . " (" . sql_cedula . ") VALUES (?)"
+                "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_vecino . "', true)"
             ],
             enum_tipo_operario => [
                 "INSERT INTO " . sql_tabla_usuario . " (" . sql_cedula . ", " . sql_clave . ", " . sql_tipo . ", " . sql_usuario_completo . ") VALUES (?, ?, '" . enum_tipo_operario . "', false)",
@@ -211,9 +210,14 @@ class Model_User
         $db = new Util_DbConnection();
 
         foreach ($accept_queries[$tipo] as $sql) {
-            $result = str_contains($sql, sql_tabla_usuario) 
-                ? $db->executeQuery($sql, "is", $ci, $clave)
-                : $db->executeQuery($sql, "i", $ci);
+            $es_insert_usuario = str_contains($sql, sql_tabla_usuario);
+            $params = $es_insert_usuario ? [$ci, $clave] : [$ci];
+
+            $result = $es_insert_usuario
+                ? $db->executeQuery($sql, "is", ...$params)
+                : $db->executeQuery($sql, "i", ...$params);
+
+            Model_Log::add_log_sql(self::MODEL_LOG, "Migracion de solicitud a usuario, CI: {$ci}, tipo: {$tipo}", $sql, $params);
 
             if (!$result->success) {
                 return false;
@@ -223,7 +227,7 @@ class Model_User
         $sql_delete = "DELETE FROM " . sql_tabla_soli_usuario . " WHERE " . sql_cedula . " = ?";
         $result_delete = $db->executeQuery($sql_delete, "i", $ci);
 
-        Model_Log::add_log_sql(self::MODEL_LOG, "Solicitud aceptada y usuario migrado CI: {$ci} como tipo: {$tipo}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Solicitud aceptada y usuario migrado CI: {$ci} como tipo: {$tipo}", $sql_delete, [$ci]);
 
         return $result_delete->success;
     }
@@ -253,7 +257,7 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, $type . "i", $new_value, $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Actualizar campo '{$column}' en la tabla '{$table}' para la CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Actualizar campo '{$column}' en la tabla '{$table}' para la CI: {$ci}", $sql, [$new_value, $ci]);
 
         self::set_complete_user($ci);
 
@@ -301,7 +305,7 @@ class Model_User
         $sql = $complete_queries[$typeuser];
 
         $result_query_user_com = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Evaluación interna de estado completo para CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Evaluación interna de estado completo para CI: {$ci}", $sql, [$ci]);
 
         if ($result_query_user_com->success != true) {
             return;
@@ -326,7 +330,7 @@ class Model_User
         $sql_complete = "UPDATE " . sql_tabla_usuario . " SET " . sql_usuario_completo . " = ? WHERE " . sql_cedula . " = ?";
         
         $db->executeQuery($sql_complete, "ii", $val_completo, $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Estado de perfil completo actualizado a ({$val_completo}) para CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Estado de perfil completo actualizado a ({$val_completo}) para CI: {$ci}", $sql_complete, [$val_completo, $ci]);
     }
 
     public static function find_incomplete_data(string $typeuser, int $ci): bool|null|array
@@ -345,7 +349,7 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta de datos incompletos del usuario CI: {$ci} con tipo: {$typeuser}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta de datos incompletos del usuario CI: {$ci} con tipo: {$typeuser}", $sql, [$ci]);
 
         if ($result_query->success != true) {
             return null;
@@ -370,7 +374,7 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta de indicador de usuario completo para CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta de indicador de usuario completo para CI: {$ci}", $sql, [$ci]);
 
         if ($result_query->success != true) {
             return null;
@@ -396,9 +400,7 @@ class Model_User
         $typeuser = $user_base[sql_tipo] ?? null;
 
         $joins_by_type = [
-            enum_tipo_vecino => [
-                sql_tabla_vecino
-            ],
+            enum_tipo_vecino => [],
             enum_tipo_operario => [
                 sql_tabla_trabajador,
                 sql_tabla_operador
@@ -433,7 +435,7 @@ class Model_User
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql, "i", $ci);
 
-        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta administrativa de datos completos para CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Consulta administrativa de datos completos para CI: {$ci}", $sql, [$ci]);
 
         if (!$query_result->success) {
             return null;
@@ -461,7 +463,7 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Eliminar usuario CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Eliminar usuario CI: {$ci}", $sql, [$ci]);
 
         return $result_query->success;
     }
@@ -477,7 +479,7 @@ class Model_User
         $db = new Util_DbConnection();
 
         $result_query = $db->executeQuery($sql, "i", $ci);
-        Model_Log::add_log_sql(self::MODEL_LOG, "Eliminar solicitud de usuario CI: {$ci}");
+        Model_Log::add_log_sql(self::MODEL_LOG, "Eliminar solicitud de usuario CI: {$ci}", $sql, [$ci]);
 
         return $result_query->success;
     }

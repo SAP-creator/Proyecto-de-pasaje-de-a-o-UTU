@@ -19,19 +19,20 @@ class Controller_Auth {
 
         $data_user = $user[json_user];
 
-        $token_data = [];
-        $token_data[json_ci] = $data_user[json_ci];
-        $token_data[json_typeuser] = $data_user[json_typeuser];
+        // Se firman TODOS los datos que viajan en el token (ci, tipo de usuario y
+        // usuario completo), no solo una parte. Asi ningun campo puede ser
+        // modificado sin invalidar la firma.
+        $token_data = [
+            json_ci => $data_user[json_ci],
+            json_typeuser => $data_user[json_typeuser],
+            json_completeuser => $data_user[json_completeuser] ?? false
+        ];
 
         $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
 
         $token = [
             json_token => [
-                json_user => [
-                    json_ci => $token_data[json_ci],
-                    json_completeuser => $data_user[json_completeuser] ?? false,
-                    json_typeuser => $token_data[json_typeuser]
-                ],
+                json_user => $token_data,
                 json_token_sig => $signature
             ]
         ];
@@ -53,12 +54,17 @@ class Controller_Auth {
         
         $data_user = $token[json_token][json_user];
 
-        $token_data = [];
-        $token_data[json_ci] = $data_user[json_ci];
-        $token_data[json_typeuser] = $data_user[json_typeuser];
+        // Se reconstruye el mismo conjunto de datos, en el mismo orden, con el
+        // que se firmo el token para poder validar la firma correctamente.
+        $token_data = [
+            json_ci => $data_user[json_ci],
+            json_typeuser => $data_user[json_typeuser],
+            json_completeuser => $data_user[json_completeuser]
+        ];
 
         $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
-        $is_valid = hash_equals($signature, $token[json_token][json_token_sig]);
+        $token_sig = (string) ($token[json_token][json_token_sig] ?? "");
+        $is_valid = hash_equals($signature, $token_sig);
 
         if ($is_valid) {
             Model_Log::add_log_user($token_data[json_ci], self::type_log, "Firma de token validada correctamente");
@@ -69,13 +75,26 @@ class Controller_Auth {
         return $is_valid;
     }
 
+    // Unicos campos que un token puede llegar a tener. Si falta alguno, o si
+    // aparece cualquier campo extra, el token se considera invalido.
+    private const CAMPOS_TOKEN_PERMITIDOS = [json_ci, json_typeuser, json_completeuser];
+
     private static function comprobate_required_data(array $user): bool 
     {
         if (!array_key_exists(json_user, $user)) return false;
         $data_user = $user[json_user];
 
-        if (!array_key_exists(json_typeuser, $data_user)) return false;
-        if (!array_key_exists(json_ci, $data_user)) return false;
+        if (!is_array($data_user)) return false;
+
+        $claves_actuales = $data_user === [] ? [] : array_keys($data_user);
+        $claves_permitidas = self::CAMPOS_TOKEN_PERMITIDOS;
+
+        sort($claves_actuales);
+        sort($claves_permitidas);
+
+        // Deben coincidir exactamente: ni faltar un campo obligatorio, ni sobrar
+        // ningun campo adicional inyectado en el token.
+        if ($claves_actuales !== $claves_permitidas) return false;
 
         return true;
     }
