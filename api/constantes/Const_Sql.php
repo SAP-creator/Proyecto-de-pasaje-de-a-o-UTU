@@ -16,12 +16,13 @@ const sql_cedula_usuario = "cedula_usuario";
 const sql_tipo_log = "tipo_log";
 const sql_tipo_modelo = "tipo_modelo";
 const sql_texto = "texto";
+const sql_query = "query";
+const sql_parametros = "parametros";
 
 // 2. Nombres de las TABLAS en la BD
 const sql_tabla_usuario = "usuario";
 const sql_tabla_trabajador = "trabajador";
 const sql_tabla_soli_usuario = "solicitud_usuario";
-const sql_tabla_vecino = "vecino";
 const sql_tabla_operador = "operador_camion";
 const sql_tabla_admin = "admin_sistemas";
 const sql_tabla_muni_operador = "admin_municipal_operador";

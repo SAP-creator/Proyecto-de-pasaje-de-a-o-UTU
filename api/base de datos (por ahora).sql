@@ -9,14 +9,14 @@ CREATE TABLE usuario (
     cedula VARCHAR(20) NOT NULL,
     datos_completados BOOLEAN NOT NULL DEFAULT FALSE,
     clave TEXT NOT NULL,
-    tipo ENUM('vecino', 'operador camion', 'admin operador', 'admin planificador', 'admin sistema') NOT NULL,
+    tipo ENUM('vecino', 'operador camion', 'admin operador', 'admin general', 'admin sistema') NOT NULL,
     PRIMARY KEY (cedula)
 );
 
 CREATE TABLE solicitud_usuario (
     cedula VARCHAR(20) NOT NULL,
     clave TEXT NOT NULL,
-    tipo ENUM('vecino', 'operador camion', 'admin operador', 'admin planificador', 'admin sistema') NOT NULL,
+    tipo ENUM('vecino', 'operador camion', 'admin operador', 'admin general', 'admin sistema') NOT NULL,
     PRIMARY KEY (cedula)
 );
 
@@ -24,12 +24,6 @@ CREATE TABLE trabajador (
     cedula VARCHAR(20) NOT NULL,
     nombre VARCHAR(100),
     apellido VARCHAR(100),
-    PRIMARY KEY (cedula),
-    FOREIGN KEY (cedula) REFERENCES usuario(cedula) ON DELETE CASCADE
-);
-
-CREATE TABLE vecino ( 
-    cedula VARCHAR(20) NOT NULL,
     PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES usuario(cedula) ON DELETE CASCADE
 );
@@ -46,7 +40,7 @@ CREATE TABLE admin_municipal_operador (
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
 );
 
-CREATE TABLE admin_municipal_planificador (
+CREATE TABLE admin_municipal_general (
     cedula VARCHAR(20) NOT NULL,
     PRIMARY KEY (cedula),
     FOREIGN KEY (cedula) REFERENCES trabajador(cedula) ON DELETE CASCADE
@@ -69,7 +63,9 @@ CREATE TABLE log_sql (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tipo_modelo VARCHAR(50),
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    texto TEXT
+    texto TEXT,
+    query TEXT,
+    parametros JSON
 );
 
 -- -----------------------------------------------------
@@ -106,7 +102,7 @@ CREATE TABLE mes_llenado (
     PRIMARY KEY (mes, anio)
 );
 
--- Corregida la relación 1:N (Contenedor tiene N Avisos/Historial de Llenados)
+-- Relación 1:N (Contenedor tiene N Avisos/Historial de Llenados)
 CREATE TABLE aviso_llenado (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_contenedor INT NOT NULL,

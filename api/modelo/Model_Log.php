@@ -10,23 +10,50 @@ class Model_Log
     public static function add_log_user(int $ci, string $type_log, string $text): ?bool
     {
         $sql = "INSERT INTO " . sql_tabla_log_user . " (" . sql_cedula_usuario . ", " . sql_tipo_log . ", " . sql_texto . ") VALUES (?, ?, ?)";
+        $params = [$ci, $type_log, $text];
 
         $db = new Util_DbConnection();
-        $query_result = $db->executeQuery($sql, "iss", $ci, $type_log, $text);
+        $query_result = $db->executeQuery($sql, "iss", ...$params);
 
-        self::add_log_sql(self::MODEL_LOG, "Insertar log de usuario para CI: {$ci} - Tipo: {$type_log}");
+        self::add_log_sql(self::MODEL_LOG, "Insertar log de usuario para CI: {$ci} - Tipo: {$type_log}", $sql, $params);
 
         return $query_result->success;
     }
 
-    public static function add_log_sql(string $model, string $text): ?bool
+    /**
+     * Guarda un registro de auditoria SQL. Ademas del texto descriptivo, guarda
+     * la query ejecutada y los parametros que se le pasaron, para poder
+     * reconstruir exactamente que se ejecuto contra la base de datos.
+     *
+     * @param array $params Parametros ingresados en la query, en el mismo orden
+     *                       en el que se enviaron (posicion => valor).
+     */
+    public static function add_log_sql(string $model, string $text, string $query = "", array $params = []): ?bool
     {
-        $sql = "INSERT INTO " . sql_tabla_log_sql . " (" . sql_tipo_modelo . ", " . sql_texto . ") VALUES (?, ?)";
+        $parametros_json = json_encode(self::indexar_parametros($params));
+
+        $sql = "INSERT INTO " . sql_tabla_log_sql . " (" . sql_tipo_modelo . ", " . sql_texto . ", " . sql_query . ", " . sql_parametros . ") VALUES (?, ?, ?, ?)";
 
         $db = new Util_DbConnection();
-        $query_result = $db->executeQuery($sql, "ss", $model, $text);
+        $query_result = $db->executeQuery($sql, "ssss", $model, $text, $query, $parametros_json);
 
         return $query_result->success;
+    }
+
+    /**
+     * Convierte la lista de parametros en un array asociativo cuya clave es la
+     * posicion del parametro (como string, para que sobreviva el json_encode)
+     * y cuyo valor es el valor ingresado en esa posicion.
+     */
+    private static function indexar_parametros(array $params): array
+    {
+        $parametros_indexados = [];
+
+        foreach (array_values($params) as $posicion => $valor) {
+            $parametros_indexados[(string) $posicion] = $valor;
+        }
+
+        return $parametros_indexados;
     }
 
     public static function get_logs_user(int $ci, string $type_log = ""): ?array
@@ -38,17 +65,19 @@ class Model_Log
                     FROM " . sql_tabla_log_user . "
                     WHERE " . sql_cedula_usuario . " = ?
                     ORDER BY " . sql_fecha . " DESC";
+            $params = [$ci];
 
-            $query_result = $db->executeQuery($sql, "i", $ci);
-            self::add_log_sql(self::MODEL_LOG, "Consultar logs del usuario CI: {$ci}");
+            $query_result = $db->executeQuery($sql, "i", ...$params);
+            self::add_log_sql(self::MODEL_LOG, "Consultar logs del usuario CI: {$ci}", $sql, $params);
         } else {
             $sql = "SELECT " . sql_id . ", " . sql_fecha . ", " . sql_tipo_log . ", " . sql_texto . ", " . sql_cedula_usuario . "
                     FROM " . sql_tabla_log_user . "
                     WHERE " . sql_cedula_usuario . " = ? AND " . sql_tipo_log . " = ?
                     ORDER BY " . sql_fecha . " DESC";
+            $params = [$ci, $type_log];
 
-            $query_result = $db->executeQuery($sql, "is", $ci, $type_log);
-            self::add_log_sql(self::MODEL_LOG, "Consultar logs del usuario CI: {$ci} filtrados por tipo: {$type_log}");
+            $query_result = $db->executeQuery($sql, "is", ...$params);
+            self::add_log_sql(self::MODEL_LOG, "Consultar logs del usuario CI: {$ci} filtrados por tipo: {$type_log}", $sql, $params);
         }
 
         if (!$query_result->success || is_null($query_result->data)) {
@@ -94,7 +123,7 @@ class Model_Log
             ? $db->executeQuery($sql)
             : $db->executeQuery($sql, $types, ...$params);
 
-        self::add_log_sql(self::MODEL_LOG, "Consultar historial general de logs de usuarios con filtros (tipo usuario: {$type_user}, tipo log: {$type_log})");
+        self::add_log_sql(self::MODEL_LOG, "Consultar historial general de logs de usuarios con filtros (tipo usuario: {$type_user}, tipo log: {$type_log})", $sql, $params);
 
         if (!$query_result->success || is_null($query_result->data)) {
             return null;
@@ -105,14 +134,14 @@ class Model_Log
 
     public static function get_logs_sql(): ?array
     {
-        $sql = "SELECT " . sql_id . ", " . sql_fecha . ", " . sql_tipo_modelo . ", " . sql_texto . " 
+        $sql = "SELECT " . sql_id . ", " . sql_fecha . ", " . sql_tipo_modelo . ", " . sql_texto . ", " . sql_query . ", " . sql_parametros . "
                 FROM " . sql_tabla_log_sql . " 
                 ORDER BY " . sql_fecha . " DESC";
 
         $db = new Util_DbConnection();
         $query_result = $db->executeQuery($sql);
 
-        self::add_log_sql(self::MODEL_LOG, "Consultar registros de auditoría de consultas SQL");
+        self::add_log_sql(self::MODEL_LOG, "Consultar registros de auditoría de consultas SQL", $sql, []);
 
         if (!$query_result->success || is_null($query_result->data)) {
             return null;
