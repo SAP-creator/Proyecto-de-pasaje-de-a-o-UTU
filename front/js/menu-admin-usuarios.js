@@ -1,8 +1,8 @@
 /**
  * menu-admin-usuarios.js
- * Única función: pintar y manejar el menú "Usuarios" de admin sistema
- * (listar, filtrar por tipo, buscar por CI, ver/editar datos de un usuario
- * puntual y borrarlo). Usa <template> del HTML, nunca arma HTML a mano.
+ * Pinta y maneja el menú "Usuarios" de admin sistema: listar, filtrar por
+ * tipo, buscar por CI, ver/editar los datos de un usuario puntual y
+ * borrarlo. Usa <template> del HTML, nunca arma HTML a mano.
  */
 
 const LISTA_MAPEO_USUARIOS = {
@@ -12,8 +12,13 @@ const LISTA_MAPEO_USUARIOS = {
   'Error C ApiAdminSys UserNotFound': 'El usuario no existe.',
   'Error C ApiAdminSys InvalidTargetCi': 'La cédula indicada no es válida.',
   'Error C ApiAdminSys InvalidMissingDataProvided': 'Los datos ingresados no son válidos.',
-  'Error C ApiAdminSys InvalidPasswordFormat': 'El formato de la contraseña no es válido.'
+  'Error C ApiAdminSys InvalidPasswordFormat': 'El formato de la contraseña no es válido.',
+  'Error C ApiAdminSys AdminAccessDenied': 'No tenés permisos para hacer esto.'
 };
+
+// Nombre a mostrar cuando el usuario no tiene Nombre/Apellido cargado
+// (vecinos, o cualquier perfil todavía incompleto).
+const NOMBRE_NO_DISPONIBLE = '...';
 
 const MenuAdminUsuarios = {
   _usuarios: [],
@@ -43,9 +48,9 @@ const MenuAdminUsuarios = {
     usuarios_tabla_cuerpo.replaceChildren();
     usuarios_tabla_vacia.classList.add('hidden');
 
-    // 1. Armamos el token base
     const payload = {
-      TOKEN: auth.tokenUsuario()
+      TOKEN: auth.tokenUsuario(),
+      TYPEUSER: usuarios_filtro_tipo.value || undefined
     };
 
     const resultado = await ApiCliente.fetchDatos('USERS', payload, LISTA_MAPEO_USUARIOS);
@@ -55,17 +60,43 @@ const MenuAdminUsuarios = {
       return;
     }
 
-    // El endpoint devuelve un objeto clave-valor (CI -> TYPEUSER); ApiCliente
-    // ya lo esparció junto al resto de las propiedades del resultado.
+    // El endpoint devuelve un objeto clave-valor (CI -> TYPEUSER).
     const { codigo, esError, mensajeUsuario, ...mapa } = resultado;
-    this._usuarios = Object.entries(mapa);
+    const pares = Object.entries(mapa);
+
+    this._usuarios = await Promise.all(pares.map(async ([ci, tipo]) => ({
+      ci,
+      tipo,
+      nombre: await this._obtenerNombre(ci, tipo)
+    })));
+
     this._pintar(this._usuarios);
+  },
+
+  /**
+   * Trae Nombre + Apellido de un usuario puntual. Los vecinos no tienen
+   * esos campos, y cualquier perfil incompleto puede no tenerlos
+   * cargados todavía: en esos casos se muestra NOMBRE_NO_DISPONIBLE.
+   */
+  async _obtenerNombre(ci, tipo) {
+    if (tipo === 'vecino') return NOMBRE_NO_DISPONIBLE;
+
+    const datos = await ApiCliente.fetchDatos('USER_DATA', {
+      TOKEN: auth.tokenUsuario(),
+      USER: { CI: Number(ci) }
+    }, LISTA_MAPEO_USUARIOS);
+
+    if (datos.esError || (!datos.FIRSTNAME && !datos.LASTNAME)) {
+      return NOMBRE_NO_DISPONIBLE;
+    }
+
+    return [datos.FIRSTNAME, datos.LASTNAME].filter(Boolean).join(' ');
   },
 
   _filtrarPorBusqueda() {
     const texto = usuarios_buscar_ci.value.trim();
     const filtrados = texto
-      ? this._usuarios.filter(([ci]) => String(ci).includes(texto))
+      ? this._usuarios.filter(u => String(u.ci).includes(texto))
       : this._usuarios;
     this._pintar(filtrados);
   },
@@ -78,10 +109,14 @@ const MenuAdminUsuarios = {
       return;
     }
     usuarios_tabla_vacia.classList.add('hidden');
-    lista.forEach(([ci, tipo]) => {
+    lista.forEach(({ ci, tipo, nombre }) => {
       const fila = tpl_fila_usuario.content.cloneNode(true);
       fila.querySelector('[data-campo="ci"]').textContent = ci;
       fila.querySelector('[data-campo="tipo"]').textContent = etiquetaTipoUsuario(tipo);
+
+      const celdaNombre = fila.querySelector('[data-campo="nombre"]');
+      if (celdaNombre) celdaNombre.textContent = nombre;
+
       fila.querySelector('[data-accion="opciones"]').addEventListener('click', () => this._abrirOpciones(ci));
       usuarios_tabla_cuerpo.appendChild(fila);
     });
@@ -123,15 +158,26 @@ const MenuAdminUsuarios = {
 
     form.addEventListener('submit', async (evento) => {
       evento.preventDefault();
+
       const cambios = {};
       if (form.FIRSTNAME.value.trim()) cambios.FIRSTNAME = form.FIRSTNAME.value.trim();
       if (form.LASTNAME.value.trim()) cambios.LASTNAME = form.LASTNAME.value.trim();
       if (form.PASSWORD.value) cambios.PASSWORD = form.PASSWORD.value;
 
+      if (!Object.keys(cambios).length) {
+        this._mostrarMensajeForm(mensaje, 'No hay cambios para guardar.', 'error');
+        return;
+      }
+
+      const boton = form.querySelector('button[type="submit"]');
+      boton.disabled = true;
+
       const resultado = await ApiCliente.fetchDatos('USER_DATA_UPDATE', {
         TOKEN: auth.tokenUsuario(),
         USER: { CI: Number(ci), ...cambios }
       }, LISTA_MAPEO_USUARIOS);
+
+      boton.disabled = false;
 
       if (resultado.esError) {
         this._mostrarMensajeForm(mensaje, resultado.mensajeUsuario, 'error');
@@ -140,6 +186,10 @@ const MenuAdminUsuarios = {
 
       this._mostrarMensajeForm(mensaje, resultado.mensaje || resultado.mensajeUsuario, 'exito');
       form.PASSWORD.value = '';
+
+      // Refresca la tabla de fondo para que el cambio (ej: nombre nuevo)
+      // se vea sin tener que cerrar el modal y volver a entrar.
+      this._cargar();
     });
   },
 

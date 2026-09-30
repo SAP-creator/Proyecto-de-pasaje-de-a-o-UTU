@@ -1,14 +1,8 @@
 /**
  * menu-admin-solicitudes.js
- * Única función: pintar y manejar el menú "Solicitud usuario" de admin
- * sistema (listar, filtrar por tipo, seleccionar varias con checkbox y
- * borrarlas, o borrar una sola).
- *
- * OJO: el mockup que me pasaste solo mostraba el botón "borrar" (rechazar).
- * La API también tiene un endpoint /user/adminsys/requests/accept
- * (RUTAS_API.REQUESTS_ACCEPT) para aprobar una solicitud, pero como no
- * apareció ningún botón de "aceptar" en el dibujo que me pasaste, no lo
- * agregué. Avisame si va y lo sumo.
+ * Pinta y maneja el menú "Solicitud usuario" de admin sistema: listar,
+ * filtrar por tipo, aceptar o borrar una solicitud puntual, y aceptar o
+ * borrar varias seleccionadas con checkbox.
  */
 
 const LISTA_MAPEO_SOLICITUDES = {
@@ -24,8 +18,8 @@ const MenuAdminSolicitudes = {
   async iniciar() {
     this._llenarFiltro();
     solicitudes_filtro_tipo.addEventListener('change', () => this._cargar());
-    solicitudes_borrar_seleccionados.addEventListener('click', () => this._borrarSeleccionados());
-    solicitudes_aceptar_seleccionados.addEventListener('click', () => this._crearSeleccionados());
+    solicitudes_borrar_seleccionados.addEventListener('click', () => this._accionSeleccionados('REQUESTS_DELETE', 'borrar'));
+    solicitudes_aceptar_seleccionados.addEventListener('click', () => this._accionSeleccionados('REQUESTS_ACCEPT', 'aceptar'));
     await this._cargar();
   },
 
@@ -73,18 +67,22 @@ const MenuAdminSolicitudes = {
       checkbox.dataset.ci = solicitud.CI;
       fila.querySelector('[data-campo="ci"]').textContent = solicitud.CI;
       fila.querySelector('[data-campo="tipo"]').textContent = etiquetaTipoUsuario(solicitud.TYPEUSER);
-      fila.querySelector('[data-accion="borrar"]').addEventListener('click', () => this._borrarUna(solicitud.CI));
-      fila.querySelector('[data-accion="aceptar"]').addEventListener('click', () => this._crearUna(solicitud.CI));
+
+      const botonAceptar = fila.querySelector('[data-accion="aceptar"]');
+      botonAceptar.classList.add('btn-exito');
+      botonAceptar.addEventListener('click', () => this._accionUna(solicitud.CI, 'REQUESTS_ACCEPT', 'aceptar/aprobar'));
+
+      fila.querySelector('[data-accion="borrar"]').addEventListener('click', () => this._accionUna(solicitud.CI, 'REQUESTS_DELETE', 'borrar'));
 
       solicitudes_tabla_cuerpo.appendChild(fila);
     });
   },
 
-  async _crearUna(ci) {
-    const confirmado = await Modal.confirmar('¿Seguro que querés aceptar/aprobar esta solicitud?');
+  async _accionUna(ci, urlKey, verbo) {
+    const confirmado = await Modal.confirmar(`¿Seguro que querés ${verbo} esta solicitud?`);
     if (!confirmado) return;
 
-    const resultado = await ApiCliente.fetchDatos('REQUESTS_ACCEPT', {
+    const resultado = await ApiCliente.fetchDatos(urlKey, {
       TOKEN: auth.tokenUsuario(),
       USER: { CI: Number(ci) }
     }, LISTA_MAPEO_SOLICITUDES);
@@ -96,18 +94,19 @@ const MenuAdminSolicitudes = {
     }
 
     await this._cargar();
+    if (window.MenuAdminUsuarios) MenuAdminUsuarios._cargar();
   },
 
-  async _borrarSeleccionados() {
+  async _accionSeleccionados(urlKey, verbo) {
     const seleccionados = [...solicitudes_tabla_cuerpo.querySelectorAll('[data-campo="check"]:checked')]
       .map(chk => chk.dataset.ci);
 
     if (!seleccionados.length) return;
 
-    const confirmado = await Modal.confirmar('¿Seguro que querés borrar ' + seleccionados.length + ' solicitud(es)?');
+    const confirmado = await Modal.confirmar(`¿Seguro que querés ${verbo} ${seleccionados.length} solicitud(es)?`);
     if (!confirmado) return;
 
-    const resultados = await Promise.all(seleccionados.map(ci => ApiCliente.fetchDatos('REQUESTS_DELETE', {
+    const resultados = await Promise.all(seleccionados.map(ci => ApiCliente.fetchDatos(urlKey, {
       TOKEN: auth.tokenUsuario(),
       USER: { CI: Number(ci) }
     }, LISTA_MAPEO_SOLICITUDES)));
@@ -119,42 +118,6 @@ const MenuAdminSolicitudes = {
     }
 
     await this._cargar();
-    
-    // Si la pestaña de usuarios ya está instanciada, la recargamos en segundo plano
-    if (window.MenuAdminUsuarios) {
-      MenuAdminUsuarios._cargar();
-    }
-  },
-
-  async _crearSeleccionados() {
-
-    const seleccionados = [...solicitudes_tabla_cuerpo.querySelectorAll('[data-campo="check"]:checked')]
-      .map(chk => chk.dataset.ci);
-
-    if (!seleccionados.length) return;
-
-    const confirmado = await Modal.confirmar('¿Seguro que querés aceptar ' + seleccionados.length + ' solicitud(es)?');
-    if (!confirmado) return;
-
-    const resultados = await Promise.all(seleccionados.map(ci => ApiCliente.fetchDatos('REQUESTS_ACCEPT', {
-      TOKEN: auth.tokenUsuario(),
-      USER: { CI: Number(ci) }
-    }, LISTA_MAPEO_SOLICITUDES)));
-
-    const conError = resultados.find(r => r.esError);
-    if (conError) {
-      solicitudes_tabla_vacia.textContent = conError.mensajeUsuario;
-      solicitudes_tabla_vacia.classList.remove('hidden');
-    }
-
-    await this._cargar();
-    
-    // Si la pestaña de usuarios ya está instanciada, la recargamos en segundo plano
-    if (window.MenuAdminUsuarios) {
-      MenuAdminUsuarios._cargar();
-    }
-
-    
+    if (window.MenuAdminUsuarios) MenuAdminUsuarios._cargar();
   }
-
 };

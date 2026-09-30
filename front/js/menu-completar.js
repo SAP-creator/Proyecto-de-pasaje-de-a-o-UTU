@@ -1,9 +1,9 @@
 /**
  * menu-completar.js
- * Única función: mostrar el popup bloqueante que le pide al usuario
- * logueado completar Nombre y Apellido cuando su perfil todavía no está
- * completo (TOKEN.USER.COMPLETEUSER === false), y avisarle a app.js
- * cuando ya puede continuar.
+ * Muestra el popup bloqueante que le pide al usuario logueado completar
+ * Nombre y Apellido cuando su perfil todavía no está completo
+ * (TOKEN.USER.COMPLETEUSER === false), y avisa a app.js cuando ya puede
+ * continuar.
  */
 
 const LISTA_MAPEO_COMPLETAR = {
@@ -16,8 +16,8 @@ const LISTA_MAPEO_COMPLETAR = {
 
 const MenuCompletar = {
   /**
-   * @param {Function} alCompletar Callback que arranca el resto de la app
-   *                               una vez que el perfil queda completo.
+   * @param {Function} alCompletar Se llama para arrancar el resto de la
+   *                                app una vez que el perfil queda completo.
    */
   mostrar(alCompletar) {
     const contenedor = document.createElement('div');
@@ -33,9 +33,8 @@ const MenuCompletar = {
       const boton = form.querySelector('button');
       boton.disabled = true;
 
-
       const resultado = await ApiCliente.fetchDatos('USER_COMPLETE', {
-        TOKEN:auth.tokenUsuario() ,
+        TOKEN: auth.tokenUsuario(),
         USER: {
           FIRSTNAME: form.FIRSTNAME.value.trim(),
           LASTNAME: form.LASTNAME.value.trim()

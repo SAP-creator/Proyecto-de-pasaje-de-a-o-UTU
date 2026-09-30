@@ -1,15 +1,14 @@
 /**
  * code-translator.js
- * Única función: traducir los códigos de respuesta del backend.
+ * Traduce los códigos de respuesta del backend.
  *
  * Formato del código: "[ESTADO] [CAPA] [SISTEMA] [MENSAJE]"
  * Ej: "Error C ApiAdminSys InvalidToken"
  */
 
 const CodeTranslator = {
-  // Diccionario base, lo más chico posible: solo lo genérico que puede
-  // pasarle a cualquier controlador. Cada pantalla le suma lo suyo a
-  // través de "listaMapeo" en traducirUsuario().
+  // Diccionario base: solo lo genérico que puede pasarle a cualquier
+  // controlador. Cada pantalla suma lo propio vía "listaMapeo".
   MapaBasicoTraduccion: {
     'Error V ApiAdminSys MethodNotAllowed': 'Método no permitido.',
     'Error V ApiAdminSys PathNotFound': 'Ruta no encontrada.',
@@ -31,8 +30,7 @@ const CodeTranslator = {
   },
 
   /**
-   * Traduce el código a un formato técnico, para mandar directo a la
-   * consola de depuración.
+   * Traduce el código a un formato técnico para la consola de depuración.
    * Ej: "Error en Controlador llamado ApiAdminSys -- InvalidToken"
    */
   traducirConsola(codigo) {
@@ -46,9 +44,9 @@ const CodeTranslator = {
   },
 
   /**
-   * Indica si el código representa un error (todo lo que no empieza con
-   * "OK"). Si el código no tiene el formato esperado, se asume error para
-   * no dejar pasar por éxito algo que no pudimos interpretar.
+   * Indica si el código representa un error. Si no tiene el formato
+   * esperado, se asume error para no dejar pasar algo que no se pudo
+   * interpretar.
    */
   esError(codigo) {
     const partido = this._partir(codigo);
@@ -57,9 +55,9 @@ const CodeTranslator = {
   },
 
   /**
-   * Busca el código en MapaBasicoTraduccion combinado con listaMapeo
-   * (el mapa propio del controlador que llama). Si no lo encuentra en
-   * ninguno de los dos, retorna "OK" o "Error desconocido" según corresponda.
+   * Busca el código en MapaBasicoTraduccion combinado con listaMapeo (el
+   * mapa propio de quien llama). Si no aparece en ninguno, retorna "OK"
+   * o "Error desconocido" según corresponda.
    */
   traducirUsuario(codigo, listaMapeo) {
     if (!codigo || typeof codigo !== 'string') return 'Error desconocido';

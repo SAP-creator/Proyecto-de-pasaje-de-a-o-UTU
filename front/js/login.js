@@ -1,10 +1,9 @@
 /**
  * login.js
- * Única función: controlar la página login.html (alternar entre las
- * pestañas "Iniciar sesión" / "Registrarse" y manejar el envío de ambos
- * formularios). Habla con la API a través de "auth", pero no sabe nada de
- * cómo se guarda o se lee la sesión: eso es responsabilidad exclusiva de
- * auth.js.
+ * Controla login.html: alterna entre las pestañas "Iniciar sesión" /
+ * "Registrarse" y maneja el envío de ambos formularios. Habla con la API
+ * a través de "auth"; no sabe cómo se guarda o se lee la sesión, eso es
+ * responsabilidad de auth.js.
  */
 
 function switchTab(tab) {
@@ -12,7 +11,6 @@ function switchTab(tab) {
   tab_register.classList.toggle('active', tab === 'register');
   form_login.classList.toggle('hidden', tab !== 'login');
   form_register.classList.toggle('hidden', tab !== 'register');
-
 }
 
 function mostrarMensaje(el, texto, tipo) {
@@ -33,7 +31,7 @@ formulario_login.addEventListener('submit', async (evento) => {
 
   const boton = evento.target.querySelector('button');
   boton.disabled = true;
-  
+
   try {
     await auth.iniciarSesion(cedula, password);
     location.href = '../app.html';
