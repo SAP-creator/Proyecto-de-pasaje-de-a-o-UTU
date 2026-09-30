@@ -1,11 +1,11 @@
 /**
  * menu-datos.js
- * Única función: pintar y manejar el menú "Mis datos" (perfil propio),
- * compartido por todos los tipos de usuario.
+ * Pinta y maneja el menú "Mis datos" (perfil propio), compartido por
+ * todos los tipos de usuario.
  *
- * Por ahora deja tocar Nombre, Apellido y Contraseña para cualquier rol,
- * porque todavía no me pasaste qué campos puede editar cada TYPEUSER según
- * la documentación. Cuando me mandes esa parte, ajusto los permisos acá.
+ * TODO: los permisos de edición por TYPEUSER todavía no están definidos
+ * en la documentación; por ahora se dejan editables Nombre, Apellido y
+ * Contraseña para cualquier rol.
  */
 
 const LISTA_MAPEO_DATOS = {
@@ -20,20 +20,22 @@ const MenuDatos = {
     datos_ci_solo_lectura.value = auth.ci();
     datos_tipo_solo_lectura.value = etiquetaTipoUsuario(auth.tipoUsuario());
     datos_guardar.addEventListener('click', () => this._guardar());
+
+    // No hay un endpoint que devuelva Nombre/Apellido del propio usuario
+    // (solo CI/TYPEUSER/COMPLETEUSER viajan en el token), así que estos
+    // campos no se pueden precargar todavía.
   },
 
   async _guardar() {
     const form = form_mis_datos;
     const cambios = {};
-    /////modificar a futuro 
+
     if (form.FIRSTNAME.value.trim()) cambios.FIRSTNAME = form.FIRSTNAME.value.trim();
     if (form.LASTNAME.value.trim()) cambios.LASTNAME = form.LASTNAME.value.trim();
     if (form.PASSWORD.value) cambios.PASSWORD = form.PASSWORD.value;
 
-
-    
     const resultado = await ApiCliente.fetchDatos('PROFILE_UPDATE', {
-      TOKEN: auth.tokenUsuario() ,
+      TOKEN: auth.tokenUsuario(),
       USER: cambios
     }, LISTA_MAPEO_DATOS);
 
@@ -42,11 +44,9 @@ const MenuDatos = {
       return;
     }
 
-    // Si es un éxito pero no trajo mensaje o el traductor falló, forzamos el mensaje correcto
-    let msjFinal = resultado.mensaje || resultado.mensajeUsuario;
-    if (msjFinal === 'Error desconocido') {
-      msjFinal = LISTA_MAPEO_DATOS['OK C ApiAdminSys UserDataUpdated'] || 'Datos actualizados correctamente.';
-    }
+    const msjFinal = resultado.mensaje && resultado.mensaje !== 'Error desconocido'
+      ? resultado.mensaje
+      : (LISTA_MAPEO_DATOS['OK C ApiAdminSys UserDataUpdated'] || 'Datos actualizados correctamente.');
 
     this._mostrarMensaje(msjFinal, 'exito');
     form.PASSWORD.value = '';

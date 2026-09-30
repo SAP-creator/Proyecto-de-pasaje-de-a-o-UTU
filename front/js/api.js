@@ -1,17 +1,17 @@
 /**
  * api.js
- * Única función: ejecutar peticiones contra la API a partir de las claves
- * definidas en RUTAS_API (constants.js), y traducir siempre la respuesta
- * con CodeTranslator antes de devolverla.
+ * Ejecuta peticiones contra la API a partir de las claves definidas en
+ * RUTAS_API (constants.js) y traduce siempre la respuesta con
+ * CodeTranslator antes de devolverla.
  */
 
 const ApiCliente = {
   /**
-   * @param {string} urlKey      Clave de RUTAS_API (ej: "SIGN_IN").
-   * @param {object} [body]      Body a enviar (o payload en query si es GET).
-   * @param {object} [listaMapeo] Traducciones propias del controlador que llama.
-   * @returns {Promise<object>}  Todo el body devuelto por el backend, más
-   *                             { codigo, esError, mensajeUsuario }.
+   * @param {string} urlKey       Clave de RUTAS_API (ej: "SIGN_IN").
+   * @param {object} [body]       Body a enviar (o payload en query si es GET).
+   * @param {object} [listaMapeo] Traducciones propias del módulo que llama.
+   * @returns {Promise<object>}   Body de la respuesta aplanado, más
+   *                              { codigo, esError, mensajeUsuario }.
    */
   async fetchDatos(urlKey, body, listaMapeo) {
     const ruta = RUTAS_API[urlKey];
@@ -37,18 +37,12 @@ const ApiCliente = {
     let codigo = null;
 
     try {
-
       const respuesta = await fetch(url, opciones);
-
-      // Capturamos el texto crudo para ver qué carajo está respondiendo el server
       const textoCrudo = await respuesta.text();
-
-
-      // Intentamos parsearlo a JSON a mano
       cuerpo = textoCrudo ? JSON.parse(textoCrudo) : null;
       codigo = this._extraerCodigo(cuerpo);
     } catch (errorRed) {
-      console.error(`[API] Error parseando JSON en ${urlKey}:`, errorRed);
+      console.error(`[API] Error en la petición a ${urlKey}:`, errorRed);
       codigo = 'Error U ApiCliente ConnectionFailed';
     }
 
@@ -59,11 +53,6 @@ const ApiCliente = {
     return this._empaquetar(cuerpo, codigo, listaMapeo);
   },
 
-  /**
-   * Arma el objeto de retorno: todo el body original del fetch (ya
-   * aplanado, ver _normalizar), más el código crudo, si es error o no, y
-   * la traducción para el usuario.
-   */
   _empaquetar(cuerpo, codigo, listaMapeo) {
     return {
       ...this._normalizar(cuerpo),
@@ -74,19 +63,11 @@ const ApiCliente = {
   },
 
   /**
-   * El backend responde SIEMPRE con un array de "bloques": el primero
-   * suele ser { CODE: "..." } y los siguientes son los datos en sí, que
-   * pueden venir como objeto con claves con nombre (TOKEN, mensaje,
-   * EXISTS, el mapa CI->TYPEUSER, etc.) o como una lista cruda (ej. en
-   * /requests o en los logs). Esta función junta todo eso en un único
-   * objeto plano, para que el resto del código pueda leer
-   * "resultado.TOKEN" o "resultado.mensaje" directo, sin tener que andar
-   * recorriendo el array a mano.
-   *
-   * - Bloques objeto: se combinan sus claves en el resultado (el CODE se
-   *   descarta acá porque ya se extrajo aparte).
-   * - Bloques que son ellos mismos un array (una lista de datos): se
-   *   guardan en resultado.datos.
+   * El backend responde con un array de bloques: uno suele ser
+   * { CODE: "..." } y los siguientes son los datos (objeto con claves
+   * propias, o una lista cruda como en /requests o los logs). Esta
+   * función junta todo en un único objeto plano para poder leer
+   * "resultado.TOKEN" o "resultado.datos" directo.
    */
   _normalizar(cuerpo) {
     if (Array.isArray(cuerpo)) {
@@ -113,7 +94,7 @@ const ApiCliente = {
   },
 
   /**
-   * Busca recursivamente el atributo CODE dentro de la respuesta HTTP de PHP.
+   * Busca recursivamente el atributo CODE dentro de la respuesta.
    */
   _extraerCodigo(cuerpo) {
     if (!cuerpo || typeof cuerpo !== 'object') return null;

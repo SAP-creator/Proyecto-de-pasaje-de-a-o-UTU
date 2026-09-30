@@ -1,13 +1,9 @@
 /**
  * auth.js
- * Única función: manejar la sesión del usuario logueado (guardarla, leerla,
- * cerrarla) y las dos acciones de autenticación (iniciar sesión / registrar
- * solicitud), hablando con ApiCliente.fetchDatos(). No toca el DOM.
+ * Maneja la sesión del usuario logueado (guardar, leer, cerrar) y las
+ * acciones de autenticación (iniciar sesión / registrar solicitud).
  */
 
-// Traducciones propias de esta pantalla: lo que "auth" espera poder
-// mostrarle al usuario para los códigos que puede devolver /user/sign/in
-// y /user/sign/up.
 const LISTA_MAPEO_AUTH = {
   'Error C ApiAdminSys NegativeCi': 'La cédula no puede ser negativa.',
   'Error C ApiAdminSys CiTooLong': 'La cédula ingresada es demasiado larga.',
@@ -68,19 +64,20 @@ const auth = {
     return s ? s.firma : null;
   },
 
-  /** Forma de TOKEN que piden los endpoints de admin sistema.
-   * DESECHADO POR AHORA
-  tokenAdmin() {
-    return {
-      USER: { CI: this.ci() },
-      SIGNATURE: this.firma()
-    };
-  } */
-
-  /** Forma de TOKEN que pide /user/profile: el usuario completo del login. */
+  /**
+   * Forma de TOKEN que espera el backend: el token solo puede tener
+   * exactamente CI, TYPEUSER y COMPLETEUSER (el backend rechaza cualquier
+   * otro campo, de más o de menos), así que se arma explícitamente acá
+   * en vez de reenviar el objeto de sesión tal cual.
+   */
   tokenUsuario() {
+    const u = this.usuarioActual() || {};
     return {
-      USER: this.usuarioActual(),
+      USER: {
+        CI: u.CI,
+        TYPEUSER: u.TYPEUSER,
+        COMPLETEUSER: Boolean(u.COMPLETEUSER)
+      },
       SIGNATURE: this.firma()
     };
   },
@@ -101,8 +98,7 @@ const auth = {
 
   /**
    * Se llama después de que /user/complete confirma que el perfil ya
-   * quedó completo, para no tener que volver a loguearse para que se
-   * refleje en la sesión guardada.
+   * quedó completo, para no depender de volver a loguearse.
    */
   marcarPerfilCompleto() {
     const sesion = this._sesion;
