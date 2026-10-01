@@ -1,9 +1,5 @@
 <?php
 
-
-
-
-
 include_once __DIR__ . "/../modelo/Model_User.php";
 include_once __DIR__ . "/../modelo/Model_Log.php";
 include_once __DIR__ . "/../utils/Util_RestHttp.php";
@@ -125,7 +121,12 @@ class Controller_UserChangeData
     public static function user_change_data_by_admin(array $data): Util_HttpResponse 
     {
         $admin_ci = (int) (Util_VerifyData::verify_and_get_from_token($data, json_ci) ?? 0);
-        $es_admin = Controller_Auth::comprobate_token_typeuser($data, json_typeuser);
+
+        // OJO: acá estaba el bug. Se comparaba el tipo de usuario del token
+        // contra la constante "TYPEUSER" (el nombre de la clave) en vez de
+        // contra el tipo real que tiene que tener un admin de sistema, por
+        // lo que este chequeo fallaba siempre, sin importar quién llamara.
+        $es_admin = Controller_Auth::comprobate_token_typeuser($data, enum_tipo_admin_sistema);
 
         if ($es_admin !== true) {
             Model_Log::add_log_user($admin_ci, self::LOG_TYPE, "Acceso denegado: Intento de modificación administrativa sin rol de administrador de sistema");

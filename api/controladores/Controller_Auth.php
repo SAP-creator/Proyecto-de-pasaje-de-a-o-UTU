@@ -19,13 +19,15 @@ class Controller_Auth {
 
         $data_user = $user[json_user];
 
-        // Se firman TODOS los datos que viajan en el token (ci, tipo de usuario y
-        // usuario completo), no solo una parte. Asi ningun campo puede ser
-        // modificado sin invalidar la firma.
+        // COMPLETEUSER se normaliza siempre a booleano real antes de firmar.
+        // La BD puede devolver "0"/"1", 0/1 o true/false segun el driver; si
+        // no se normaliza acá, la firma no coincide con la que se recalcula
+        // del lado de la verificación (que recibe siempre true/false desde
+        // el cliente).
         $token_data = [
             json_ci => $data_user[json_ci],
             json_typeuser => $data_user[json_typeuser],
-            json_completeuser => $data_user[json_completeuser] ?? false
+            json_completeuser => (bool) ($data_user[json_completeuser] ?? false)
         ];
 
         $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
@@ -54,12 +56,12 @@ class Controller_Auth {
         
         $data_user = $token[json_token][json_user];
 
-        // Se reconstruye el mismo conjunto de datos, en el mismo orden, con el
-        // que se firmo el token para poder validar la firma correctamente.
+        // Misma normalización que en create_token: se firma/compara siempre
+        // el booleano real, nunca el valor crudo tal como llegó.
         $token_data = [
             json_ci => $data_user[json_ci],
             json_typeuser => $data_user[json_typeuser],
-            json_completeuser => $data_user[json_completeuser]
+            json_completeuser => (bool) ($data_user[json_completeuser] ?? false)
         ];
 
         $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
@@ -92,8 +94,6 @@ class Controller_Auth {
         sort($claves_actuales);
         sort($claves_permitidas);
 
-        // Deben coincidir exactamente: ni faltar un campo obligatorio, ni sobrar
-        // ningun campo adicional inyectado en el token.
         if ($claves_actuales !== $claves_permitidas) return false;
 
         return true;

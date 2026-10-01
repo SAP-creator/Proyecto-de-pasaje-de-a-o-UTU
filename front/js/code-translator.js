@@ -16,7 +16,7 @@ const CodeTranslator = {
     'Error V TEAPOT TEAPOT': 'Soy una tetera.',
     'Error C ApiAdminSys InvalidToken': 'Tu sesión no es válida. Iniciá sesión de nuevo.',
     'Error C ApiAdminSys AdminAccessDenied': 'No tenés permisos para hacer esto.',
-    'Error U ApiCliente ConnectionFailed': 'No se pudo conectar con el servidor.'
+    'Error V ApiCliente ConnectionFailed': 'No se pudo conectar con el servidor.'
   },
 
   _CAPAS: { V: 'Vista', C: 'Controlador', M: 'Modelo', U: 'Utilidad' },
@@ -40,7 +40,9 @@ const CodeTranslator = {
     const estadoTexto = partido.estado === 'OK' ? 'Operación exitosa' : 'Error';
     const capaTexto = this._CAPAS[partido.capa] || partido.capa;
 
-    return `${estadoTexto} en ${capaTexto} llamado ${partido.sistema} -- ${partido.mensaje}`;
+    return `${estadoTexto} en ${capaTexto} llamado ${partido.sistema} -- ${partido.mensaje}
+            
+            ${codigo}`;
   },
 
   /**

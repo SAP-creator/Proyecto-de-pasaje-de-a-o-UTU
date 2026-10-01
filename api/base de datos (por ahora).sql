@@ -55,8 +55,8 @@ CREATE TABLE log_user (
     tipo_log VARCHAR(50),
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     texto TEXT,
-    cedula_usuario VARCHAR(20) NOT NULL,
-    FOREIGN KEY (cedula_usuario) REFERENCES usuario(cedula) ON DELETE CASCADE
+    cedula_usuario VARCHAR(20) NOT NULL
+
 );
 
 CREATE TABLE log_sql (

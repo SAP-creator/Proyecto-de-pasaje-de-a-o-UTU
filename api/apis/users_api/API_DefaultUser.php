@@ -11,7 +11,7 @@ error_reporting(E_ALL);
 include_once __DIR__ . "/../../utils/Util_RestHttp.php";
 include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../utils/Util_VerifyData.php";
-include_once __DIR__ . "/../../utils/Util_Code.php"; // Aseguramos incluir la clase del código de estado
+include_once __DIR__ . "/../../utils/Util_Code.php";
 
 include_once __DIR__ . "/../../controladores/Controller_UserSetup.php"; ///
 
@@ -44,7 +44,8 @@ if (!is_array($data) && in_array($method, ['POST', 'PUT', 'PATCH'])) {
 
 process_http_request($method, $route, $data);
 
-function process_http_request(string $method, string $route, array $data) {
+function process_http_request(string $method, string $route, array $data) 
+{
     $response = match ($method) {
         "POST"    => handle_post($route, $data),
         "PUT"     => handle_put($route, $data),
@@ -61,7 +62,8 @@ function process_http_request(string $method, string $route, array $data) {
     $response->send();
 }
 
-function handle_post(string $route, array $data): Util_HttpResponse {
+function handle_post(string $route, array $data): Util_HttpResponse 
+{
     switch ($route) {
         // Inicio de sesión
         case "/sign/in": return Controller_Sign::sign_in($data);
@@ -77,7 +79,8 @@ function handle_post(string $route, array $data): Util_HttpResponse {
     }
 }
 
-function handle_put(string $route, array $data): Util_HttpResponse {
+function handle_put(string $route, array $data): Util_HttpResponse 
+{
     switch ($route) {
         // Usa Controller_UserChangeData::user_change_data_by_user
         case "/profile": return Controller_UserChangeData::user_change_data_by_user($data);

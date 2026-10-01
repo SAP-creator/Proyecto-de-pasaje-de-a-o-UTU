@@ -43,7 +43,7 @@ const ApiCliente = {
       codigo = this._extraerCodigo(cuerpo);
     } catch (errorRed) {
       console.error(`[API] Error en la petición a ${urlKey}:`, errorRed);
-      codigo = 'Error U ApiCliente ConnectionFailed';
+      codigo = 'Error V ApiCliente ConnectionFailed';
     }
 
     if (codigo && CodeTranslator.esError(codigo)) {
