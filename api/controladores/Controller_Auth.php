@@ -157,6 +157,51 @@ class Controller_Auth {
         Model_Log::add_log_user($ci, self::type_log, "Validacion de rol '{$type_user}' exitosa");
     }
 
+    /**
+     * Igual que valid_user_type pero acepta varios roles: alcanza con que el
+     * tipo de usuario del token sea uno de $types. Si no, responde y corta.
+     */
+    public static function valid_user_types(array $data, array $types)
+    {
+        $roles = implode(", ", $types);
+
+        if (!array_key_exists(json_token, $data)) {
+            Model_Log::add_log_user(0, self::type_log, "Intento de acceso rechazado (roles permitidos: {$roles}): Token ausente");
+            $res = Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "TokenMissing"),
+                http_bad_request
+            );
+            $res->send();
+            die();
+        }
+
+        $is_valid = self::comprobate_token([json_token => $data[json_token]]);
+        $ci = $data[json_token][json_user][json_ci] ?? 0;
+        $current_type = $data[json_token][json_user][json_typeuser] ?? '';
+
+        if (is_null($is_valid)) {
+            Model_Log::add_log_user(0, self::type_log, "Error en estructura de token durante verificacion de roles ({$roles})");
+            $res = Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "TokenDataError"),
+                http_bad_request
+            );
+            $res->send();
+            die();
+        }
+
+        if ($is_valid === false || !in_array($current_type, $types, true)) {
+            Model_Log::add_log_user($ci, self::type_log, "Acceso no autorizado rechazado: el rol '{$current_type}' no esta entre los permitidos ({$roles})");
+            $res = Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidToken"),
+                http_unaunthorize
+            );
+            $res->send();
+            die();
+        }
+
+        Model_Log::add_log_user($ci, self::type_log, "Validacion de roles ({$roles}) exitosa para '{$current_type}'");
+    }
+
     public static function get_from_token(array $data, string $data_to_extract): TokenResult
     {
         if (!Util_VerifyData::keys_exists(false, $data, json_token)) {

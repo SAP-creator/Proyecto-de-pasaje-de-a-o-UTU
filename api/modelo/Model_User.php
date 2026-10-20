@@ -242,15 +242,9 @@ class Model_User
                 SET " . $column . " = ?
                 WHERE " . sql_cedula . " = ?";
 
-        $type = "";
+        $type = self::get_bind_type($new_value);
 
-        if (is_double($new_value)) {
-            $type = "d";
-        } elseif (is_int($new_value)) {
-            $type = "i";
-        } elseif (is_string($new_value)) {
-            $type = "s";
-        } else {
+        if ($type === null) {
             return null;
         }
 
@@ -262,6 +256,82 @@ class Model_User
         self::set_complete_user($ci);
 
         return $result_query->success;
+    }
+
+    /**
+     * Aplica varios cambios sobre el usuario $ci, todos o ninguno.
+     * $changes tiene la forma [tabla => [columna => nuevo_valor]].
+     * Abre su propia conexion: la transaccion no sale de esta funcion.
+     */
+    public static function change_data_many(int $ci, array $changes): ?bool
+    {
+        if (self::has_user($ci) !== true) {
+            return null;
+        }
+
+        $db = new Util_DbConnection();
+        $db->begin();
+
+        try {
+            $ok = true;
+
+            foreach ($changes as $table => $columns) {
+                foreach ($columns as $column => $new_value) {
+                    $type = self::get_bind_type($new_value);
+
+                    if ($type === null) {
+                        $ok = false;
+                        break 2;
+                    }
+
+                    $sql = "UPDATE " . $table . "
+                            SET " . $column . " = ?
+                            WHERE " . sql_cedula . " = ?";
+
+                    $result_query = $db->executeQuery($sql, $type . "i", $new_value, $ci);
+                    Model_Log::add_log_sql(self::MODEL_LOG, "Actualizar campo '{$column}' en la tabla '{$table}' para la CI: {$ci}", $sql, [$new_value, $ci]);
+
+                    if (!$result_query->success) {
+                        $ok = false;
+                        break 2;
+                    }
+                }
+            }
+        } catch (Throwable) {
+            $ok = false;
+        }
+
+        if (!$ok) {
+            $db->rollback();
+            return null;
+        }
+
+        $db->commit();
+
+        // Despues del commit, para que la evaluacion vea los datos nuevos
+        self::set_complete_user($ci);
+
+        return true;
+    }
+
+    /**
+     * Tipo de bind_param para un valor ("d", "i" o "s"), o null si no se puede guardar.
+     */
+    private static function get_bind_type(mixed $value): ?string
+    {
+        if (is_double($value)) {
+            return "d";
+        }
+
+        if (is_int($value)) {
+            return "i";
+        }
+
+        if (is_string($value)) {
+            return "s";
+        }
+
+        return null;
     }
 
     private static function get_user_complete_queries(): array

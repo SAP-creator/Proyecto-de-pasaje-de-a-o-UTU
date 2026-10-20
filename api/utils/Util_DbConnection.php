@@ -10,6 +10,9 @@ class Util_DbConnection {
         if ($this->connection->connect_error) {
             throw new Exception("Connection error: " . $this->connection->connect_error);
         }
+
+        // Necesario para guardar/leer correctamente tildes (ej: "Plástico") en los JSON
+        $this->connection->set_charset("utf8mb4");
     }
 
     public function executeQuery(string $query, string $types = "", mixed ...$params): QueryResult {
@@ -40,6 +43,8 @@ class Util_DbConnection {
         }
 
         $result->success = true;
+        $result->insert_id = (int) $stmt->insert_id;
+        $result->affected_rows = (int) $stmt->affected_rows;
         
         // get_result() devuelve false para INSERT, UPDATE, DELETE
         $data = $stmt->get_result();
@@ -49,10 +54,31 @@ class Util_DbConnection {
 
         return $result;
     }
+
+    /**
+     * Transacciones: begin/commit/rollback valen para TODAS las queries
+     * ejecutadas en esta conexion desde el begin. Cada instancia tiene su
+     * propia conexion, asi que no hay estado compartido entre instancias.
+     * Model_Log abre otra conexion distinta, asi que la auditoria de un
+     * intento fallido no se pierde con el rollback.
+     */
+    public function begin(): void {
+        $this->connection->begin_transaction();
+    }
+
+    public function commit(): void {
+        $this->connection->commit();
+    }
+
+    public function rollback(): void {
+        $this->connection->rollback();
+    }
 }
 
 class QueryResult {
     public bool $success = false;
     public ?string $error = null;
     public ?mysqli_result $data = null;
+    public int $insert_id = 0;
+    public int $affected_rows = 0;
 }

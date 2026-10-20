@@ -47,6 +47,46 @@ class Util_VerifyData
         return $result->get_value();
     }
 
+    /**
+     * Devuelve $list[$key] como array. Si falta o no es un objeto/lista JSON, responde 422 y corta.
+     */
+    public static function verify_and_get_array(array $list, string $key): array
+    {
+        self::keys_exists(true, $list, $key);
+
+        if (!is_array($list[$key])) {
+            Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, "InvalidArray"),
+                http_unprocessable_entity,
+                [json_error => "{$key} debe ser un objeto"]
+            )->send();
+            die();
+        }
+
+        return $list[$key];
+    }
+
+    /**
+     * Devuelve $list[$key] como int dentro de [$min, $max]. Si falta o es invalido, responde 422 y corta.
+     */
+    public static function verify_and_get_int(array $list, string $key, int $min = 1, int $max = PHP_INT_MAX): int
+    {
+        self::keys_exists(true, $list, $key);
+
+        $value = filter_var($list[$key], FILTER_VALIDATE_INT, ['options' => ['min_range' => $min, 'max_range' => $max]]);
+
+        if ($value === false) {
+            Util_HttpResponse::error(
+                Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, "InvalidInteger"),
+                http_unprocessable_entity,
+                [json_error => "{$key} debe ser un entero entre {$min} y {$max}"]
+            )->send();
+            die();
+        }
+
+        return $value;
+    }
+
     public static function valid_json(mixed $str, bool $die = true): ?array 
     {
         // 1. Validar que sea un string
@@ -77,5 +117,55 @@ class Util_VerifyData
         }
 
         return $decoded;
+    }
+
+    /**
+     * Comprueba que el largo del valor, convertido a string, no supere $max.
+     * Sirve para string, int y float (ej: un DECIMAL(10,2) ocupa a lo sumo 11 caracteres).
+     */
+    public static function comprobar_longitud(mixed $valor, int $max): bool
+    {
+        if (!is_scalar($valor)) {
+            return false;
+        }
+
+        return mb_strlen((string) $valor) <= $max;
+    }
+
+    /**
+     * Valida una fecha completa con formato Y-m-d H:i:s (de año a segundos).
+     */
+    public static function valid_date(mixed $value): bool
+    {
+        if (!is_string($value)) {
+            return false;
+        }
+
+        $date = DateTime::createFromFormat('Y-m-d H:i:s', $value);
+
+        return $date !== false && $date->format('Y-m-d H:i:s') === $value;
+    }
+
+    /**
+     * Valida que $values sea una lista (array secuencial) de strings, todos
+     * pertenecientes a $allowed y sin repetidos.
+     */
+    public static function valid_enum_list(mixed $values, array $allowed, bool $allow_empty = false): bool
+    {
+        if (!is_array($values) || $values !== array_values($values)) {
+            return false;
+        }
+
+        if (empty($values)) {
+            return $allow_empty;
+        }
+
+        foreach ($values as $value) {
+            if (!is_string($value) || !in_array($value, $allowed, true)) {
+                return false;
+            }
+        }
+
+        return count($values) === count(array_unique($values));
     }
 }

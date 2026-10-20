@@ -54,3 +54,188 @@ const sql_trabajador_tipo = [
     enum_tipo_admin_general, 
     enum_tipo_admin_sistema
 ];
+
+// =====================================================================
+// CONTENEDORES (CRUD contenedor, estado, llenado, vaciado e incidentes)
+// =====================================================================
+
+// Tablas
+const sql_tabla_contenedor = "contenedor";
+const sql_tabla_almacenado = "almacenado";
+const sql_tabla_estado_contenedor = "estado_contenedor";
+const sql_tabla_llenado = "llenado";
+const sql_tabla_vaciado = "vaciado";
+const sql_tabla_incidente = "incidente";
+
+// Columnas
+const sql_ubicacion = "ubicacion";
+const sql_en_funcion = "en_funcion";
+const sql_id_contenedor = "id_contenedor";
+const sql_tipo_basuras = "tipo_basuras";
+const sql_cantidad = "cantidad";
+const sql_condicion = "condicion";
+const sql_basura = "basura";
+const sql_llenado = "llenado";
+const sql_tipos = "tipos";
+// Incidente: nombres propios para no chocar con sql_tipo (TYPEUSER) en el traductor
+const sql_tipo_incidente = "tipo_incidente";
+const sql_estado_incidente = "estado_incidente";
+const sql_descripcion = "descripcion";
+
+// Claves compuestas de los arrays que arma Model_Contenedor / Controller_Contenedor
+// (no son columnas, pero tambien se traducen a JSON con Util_Translator)
+const sql_estado_actual = "estado_actual";
+const sql_llenado_actual = "llenado_actual";
+const sql_historial_estado = "historial_estado";
+const sql_historial_llenado = "historial_llenado";
+
+// Enum: condicion del estado (el estado "Normal" es exclusivo)
+const enum_cond_normal = "Normal";
+const enum_cond_vandalizado = "Vandalizado";
+const enum_cond_roto = "Roto";
+const enum_cond_quemado = "Quemado";
+const enum_cond_reparacion = "Reparacion";
+const sql_estado_condicion = [
+    enum_cond_normal,
+    enum_cond_vandalizado,
+    enum_cond_roto,
+    enum_cond_quemado,
+    enum_cond_reparacion
+];
+
+// Enum: basura del estado (el estado "Limpio" es exclusivo)
+const enum_basura_afuera = "Basura_afuera";
+const enum_basura_sobrellenado = "Sobre_llenado";
+const enum_basura_limpio = "Limpio";
+const sql_estado_basura = [
+    enum_basura_afuera,
+    enum_basura_sobrellenado,
+    enum_basura_limpio
+];
+
+// Enum: tipos de basura que puede guardar un almacenado
+const enum_residuo_plastico = "Plástico";
+const enum_residuo_vidrio = "Vidrio";
+const enum_residuo_papel = "Papel y cartón";
+const enum_residuo_metales = "Metales";
+const enum_residuo_biodegradable = "Biodegradable";
+const sql_tipo_basura = [
+    enum_residuo_plastico,
+    enum_residuo_vidrio,
+    enum_residuo_papel,
+    enum_residuo_metales,
+    enum_residuo_biodegradable
+];
+
+// Llenado: 0 = vacio, 1 a 10 = nivel, 11 = sobrellenado
+const llenado_vacio = 0;
+const llenado_sobrellenado = 11;
+
+// Incidentes
+const enum_incidente_grave = "Grave";
+const enum_incidente_moderado = "Moderado";
+const enum_incidente_leve = "Leve";
+const sql_incidente_tipo = [
+    enum_incidente_grave,
+    enum_incidente_moderado,
+    enum_incidente_leve
+];
+
+// ASUNCION: la tabla incidente.estado es VARCHAR libre; se limita a estos valores.
+const enum_incidente_pendiente = "Pendiente";
+const enum_incidente_en_proceso = "En proceso";
+const enum_incidente_resuelto = "Resuelto";
+const sql_incidente_estado = [
+    enum_incidente_pendiente,
+    enum_incidente_en_proceso,
+    enum_incidente_resuelto
+];
+
+
+// =====================================================================
+// CENTROS DE ACOPIO, RUTAS Y TRAYECTOS
+// =====================================================================
+
+// Tablas
+const sql_tabla_centro = "centro_almacenamiento";
+const sql_tabla_almacenamiento_centro = "almacenamiento_centro";
+const sql_tabla_retiro_centro = "retiro_centro";
+const sql_tabla_ruta = "ruta";
+const sql_tabla_ruta_contenedor = "ruta_contenedor";
+const sql_tabla_trayecto = "trayecto";
+const sql_tabla_ejecucion = "ejecucion";
+
+// Columnas
+const sql_id_centro = "id_centro";
+const sql_id_almacenamiento = "id_almacenamiento";
+const sql_volumen_actual = "volumen_actual";
+const sql_volumen = "volumen";
+const sql_id_ruta = "id_ruta";
+const sql_id_centro_inicio = "id_centro_inicio";
+const sql_id_centro_final = "id_centro_final";
+const sql_orden = "orden";
+const sql_estado_ejecucion = "estado"; // ejecucion.estado
+
+// Claves compuestas de los arrays que arman Model_Centro y Model_Ruta
+// (no son columnas, pero tambien se traducen a JSON con Util_Translator)
+const sql_almacenamientos = "almacenamientos";
+const sql_contenedores = "contenedores";
+const sql_slot = "slot";
+const sql_tipos_basura = "tipos_basura";
+const sql_cantidad_contenedores = "cantidad_contenedores";
+const sql_advertencias = "advertencias";
+const sql_origen = "origen";
+const sql_faltan = "faltan";
+const sql_todos = "todos";
+const sql_incompleta = "incompleta";
+const sql_retiros = "retiros";
+
+// Dias de la semana de un trayecto
+const enum_dia_lunes = "lunes";
+const enum_dia_martes = "martes";
+const enum_dia_miercoles = "miercoles";
+const enum_dia_jueves = "jueves";
+const enum_dia_viernes = "viernes";
+const enum_dia_sabado = "sabado";
+const enum_dia_domingo = "domingo";
+const sql_dia_semana = [
+    enum_dia_lunes,
+    enum_dia_martes,
+    enum_dia_miercoles,
+    enum_dia_jueves,
+    enum_dia_viernes,
+    enum_dia_sabado,
+    enum_dia_domingo
+];
+
+// Estados de una ejecucion
+const enum_ejecucion_aprobada = "aprobada";
+const enum_ejecucion_en_curso = "en_curso";
+const enum_ejecucion_pausada = "pausada";
+const enum_ejecucion_finalizada = "finalizada";
+const enum_ejecucion_cancelada = "cancelada";
+const enum_ejecucion_rechazada = "rechazada";
+const enum_ejecucion_vencida = "vencida";
+const sql_ejecucion_estado = [
+    enum_ejecucion_aprobada,
+    enum_ejecucion_en_curso,
+    enum_ejecucion_pausada,
+    enum_ejecucion_finalizada,
+    enum_ejecucion_cancelada,
+    enum_ejecucion_rechazada,
+    enum_ejecucion_vencida
+];
+// La ruta "se esta ejecutando" cuando alguna ejecucion esta en curso o pausada
+const sql_ejecucion_en_curso_o_pausada = [enum_ejecucion_en_curso, enum_ejecucion_pausada];
+// "Abierta" incluye la que esta aprobada y todavia no empezo
+const sql_ejecucion_abierta = [enum_ejecucion_aprobada, enum_ejecucion_en_curso, enum_ejecucion_pausada];
+
+// Estados de un camion
+const enum_camion_disponible = "disponible";
+const enum_camion_no_disponible = "no disponible";
+const enum_camion_en_trayecto = "en trayecto";
+const sql_camion_estado = [
+    enum_camion_disponible,
+    enum_camion_no_disponible,
+    enum_camion_en_trayecto
+];
