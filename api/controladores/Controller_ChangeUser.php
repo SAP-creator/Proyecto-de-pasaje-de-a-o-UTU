@@ -142,6 +142,36 @@ class Controller_ChangeUser
         );
     }
 
+    /**
+     * Entrada del router: el usuario autenticado modifica SUS datos.
+     * El tipo y la cedula salen del token, nunca del cliente.
+     */
+    public static function modify_own_data(array $data): Util_HttpResponse
+    {
+        Controller_Auth::valid_user_types($data, sql_usuario_tipo);
+
+        $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
+        $tipo_usuario = (string) Util_VerifyData::verify_and_get_from_token($data, json_typeuser);
+        $payload = Util_VerifyData::verify_and_get_array($data, json_user);
+
+        return self::modificar_datos($payload, $tipo_usuario, $ci);
+    }
+
+    /**
+     * Entrada del router: un admin sistema modifica los datos de otro usuario.
+     * El payload trae USER: {CI: <objetivo>, <campos a modificar>}.
+     */
+    public static function modify_user_by_admin(array $data): Util_HttpResponse
+    {
+        Controller_Auth::valid_user_types($data, [enum_tipo_admin_sistema]);
+
+        $ci_admin = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
+        $payload = Util_VerifyData::verify_and_get_array($data, json_user);
+        $ci_objetivo = Util_VerifyData::verify_and_get_int($payload, json_ci);
+
+        return self::modificar_datos($payload, tipo_modificador_admin, $ci_objetivo, $ci_admin);
+    }
+
     // =================================================================
     // Perfil completo
     // =================================================================
