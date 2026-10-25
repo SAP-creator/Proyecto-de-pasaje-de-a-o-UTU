@@ -304,11 +304,7 @@ class Model_Centro
      */
     private static function ejecutar(Util_DbConnection $db, string $texto, string $sql, string $types = "", array $params = []): QueryResult
     {
-        $query_result = $db->executeQuery($sql, $types, ...$params);
-
-        Model_Log::add_log_sql(self::MODEL_LOG, $texto, $sql, $params);
-
-        return $query_result;
+        return Util_DbConnection::executeLogged($db, self::MODEL_LOG, $texto, $sql, $types, $params);
     }
 
     /**

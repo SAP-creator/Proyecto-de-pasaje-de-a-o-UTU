@@ -55,6 +55,20 @@ class Util_DbConnection {
         return $result;
     }
 
+    /** Execute a model query and record its SQL audit entry. */
+    public static function executeLogged(
+        self $db,
+        string $model,
+        string $description,
+        string $query,
+        string $types = "",
+        array $params = []
+    ): QueryResult {
+        $result = $db->executeQuery($query, $types, ...$params);
+        Model_Log::add_log_sql($model, $description, $query, $params);
+        return $result;
+    }
+
     /**
      * Transacciones: begin/commit/rollback valen para TODAS las queries
      * ejecutadas en esta conexion desde el begin. Cada instancia tiene su

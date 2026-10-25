@@ -24,30 +24,52 @@ class Util_HttpResponse {
     }
 
     public static function ok(string $code, mixed ...$data): self {
-        $respuesta = empty($data) ? 204 : 200;
-        array_push($data, [json_code => $code]);
-        
-        return new self($respuesta, json_encode($data));
+        if (empty($data)) {
+            return new self(204);
+        }
+
+        return new self(200, self::encode_body($code, $data));
     }
 
     public static function created(string $code, mixed ...$data): self {
-        $body = empty($data) ? "" : json_encode($data);
-        array_push($data, [json_code => $code]);
-
-        return new self(201, $body);
+        return new self(201, self::encode_body($code, $data));
     }
 
-    public static function response(int $status, mixed ...$data): self {
-        return new self($status, json_encode($data));
+    public static function response(int $status, string $code, mixed ...$data): self {
+        if ($status === 204) {
+            return new self(204);
+        }
+
+        return new self($status, self::encode_body($code, $data));
     }
 
     public static function error(string $error_code, int $code = 400, mixed ...$data): self {
-        array_push($data, [json_code => $error_code]);
-        return new self($code, json_encode($data));
+        if ($code === 204) {
+            return new self(204);
+        }
+        return new self($code, self::encode_body($error_code, $data));
+    }
+
+    private static function encode_body(?string $code, array $data): string {
+        $payload = match (count($data)) {
+            0 => new stdClass(),
+            1 => $data[0],
+            default => $data
+        };
+
+        return json_encode([
+            json_code => $code,
+            json_data => $payload
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     public function send(): void {
         http_response_code($this->status);
+
+        if ($this->status === 204) {
+            return;
+        }
+
         header("Content-Type: application/json");
         echo $this->body;
     }

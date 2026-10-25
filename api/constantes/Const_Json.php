@@ -14,6 +14,7 @@ const json_token_sig = "SIGNATURE";
 
 const json_error = "ERROR";
 const json_code = "CODE";
+const json_data = "DATA";
 const json_typelog = "TYPELOG";
 
 const json_last_name = "LASTNAME";
@@ -80,3 +81,36 @@ const json_origen = "ORIGEN";
 const json_faltan = "FALTAN";
 const json_todos = "TODOS";
 const json_incompleta = "INCOMPLETA";
+
+// =====================================================================
+// CAMIONES Y TRAYECTOS
+// =====================================================================
+
+const json_camion = "CAMION";
+const json_matricula = "MATRICULA";
+const json_trayecto = "TRAYECTO";
+const json_id_ruta = "ID_RUTA";
+const json_estado_camion = "ESTADO_CAMION";
+const json_dia_semana = "DIA_SEMANA";
+const json_hora = "HORA";
+const json_fecha_especial = "FECHA_ESPECIAL";
+const json_inicio_automatico = "INICIO_AUTOMATICO";
+const json_id_camion_auto = "ID_CAMION_AUTO";
+const json_cedula_operario_auto = "CEDULA_OPERARIO_AUTO";
+const json_ejecucion = "EJECUCION";
+const json_estado_ejecucion = "ESTADO_EJECUCION";
+const json_id_trayecto = "ID_TRAYECTO";
+const json_fecha_programada = "FECHA_PROGRAMADA";
+const json_cedula_aprobador = "CEDULA_APROBADOR";
+const json_fecha_aprobacion = "FECHA_APROBACION";
+const json_fecha_inicio = "FECHA_INICIO";
+const json_fecha_final = "FECHA_FINAL";
+const json_notas = "NOTAS";
+const json_parado = "PARADO";
+const json_cedula_operario = "CEDULA_OPERARIO";
+const json_id_camion = "ID_CAMION";
+const json_llenado_camion = "LLENADO_CAMION";
+const json_id_ejecucion = "ID_EJECUCION";
+const json_fecha_pausa = "FECHA_PAUSA";
+const json_fecha_reanudacion = "FECHA_REANUDACION";
+const json_pausas = "PAUSAS";
