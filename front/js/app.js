@@ -1,76 +1,131 @@
-/**
- * app.js
- * Arranca app.html: revisa que haya sesión, pinta la zona de sesión (chip
- * de rol + avatar + cerrar sesión), arma la barra de tabs según el rol
- * logueado y delega cada menú a su módulo correspondiente.
- */
+/*
+  app.js
+  Arranque de app.html: comprueba la sesión, pide los datos que falten del perfil
+  y arma las pestañas según el rol.
+*/
 
-(function arrancar() {
-  if (!auth.estaLogueado()) {
-    location.href = 'pages/login.html';
-    return;
+const App = {
+  vistas: {},
+  botonesDePestana: {},
+  secciones: {},
+
+  // Cambia a una pestaña. "parametros" es opcional (por ejemplo { ruta: 3 } para el mapa).
+  irAPestana: function (nombre, parametros) {
+    if (!this.vistas[nombre]) {
+      return;
+    }
+
+    for (const otroNombre of Object.keys(this.secciones)) {
+      const esLaElegida = otroNombre === nombre;
+      this.secciones[otroNombre].classList.toggle('active', esLaElegida);
+      this.botonesDePestana[otroNombre].classList.toggle('active', esLaElegida);
+      this.botonesDePestana[otroNombre].setAttribute('aria-selected', String(esLaElegida));
+    }
+
+    sessionStorage.setItem('sger_pestana', nombre);
+    this.vistas[nombre].mostrar(parametros);
+  },
+
+  // Crea una pestaña y una sección por cada vista que le corresponde al rol.
+  armarPestanas: function () {
+    const barraDePestanas = document.getElementById('tabs');
+    const zonaPrincipal = document.getElementById('main');
+    const nombresDePestanas = PESTANAS_POR_ROL[Sesion.tipo()] || ['mapa', 'datos'];
+    const app = this;
+
+    for (const nombre of nombresDePestanas) {
+      const seccion = crearElemento('section', { clase: 'sec', id: 'sec-' + nombre });
+      const boton = crearElemento('button', {
+        type: 'button',
+        clase: 'tab',
+        role: 'tab',
+        alHacerClick: function () { app.irAPestana(nombre); }
+      }, traducir('tab.' + nombre));
+
+      zonaPrincipal.append(seccion);
+      barraDePestanas.append(boton);
+
+      this.secciones[nombre] = seccion;
+      this.botonesDePestana[nombre] = boton;
+      this.vistas[nombre] = VISTAS[nombre](seccion);
+    }
+
+    // Se vuelve a la última pestaña usada, si sigue disponible para este rol.
+    const ultimaPestana = sessionStorage.getItem('sger_pestana');
+    if (nombresDePestanas.includes(ultimaPestana)) {
+      this.irAPestana(ultimaPestana);
+    } else {
+      this.irAPestana(nombresDePestanas[0]);
+    }
+  },
+
+  // Si el perfil está incompleto (falta nombre y apellido), se piden antes de usar la app.
+  pedirDatosFaltantes: function () {
+    const app = this;
+
+    abrirFormulario({
+      titulo: traducir('login.complete'),
+      sinCerrar: true,
+      campos: [
+        { nombre: 'FIRSTNAME', etiqueta: 'k.FIRSTNAME', obligatorio: true, ayuda: 'login.complete.hint' },
+        { nombre: 'LASTNAME', etiqueta: 'k.LASTNAME', obligatorio: true }
+      ],
+      enviar: async function (valores) {
+        const respuesta = await Api.llamar('PUT', '/user/complete', { USER: valores });
+        if (!respuesta.exito) {
+          return respuesta;
+        }
+
+        // El backend devuelve un token nuevo (con el perfil ya completo y su firma nueva).
+        if (respuesta.datos.TOKEN && respuesta.datos.TOKEN.USER) {
+          Sesion.guardarToken(respuesta.datos.TOKEN);
+          return respuesta;
+        }
+
+        // Si no lo devolvió, no se puede inventar uno (la firma solo la genera el backend):
+        // se cierra la sesión para que la persona vuelva a ingresar con el perfil ya completo.
+        mostrarAviso(traducir('login.relogin'), 'ok');
+        setTimeout(function () {
+          Sesion.cerrarSesion();
+        }, 1800);
+        return respuesta;
+      },
+      alTerminar: function () {
+        if (Sesion.hayUsuarioIngresado() && Sesion.perfilCompleto()) {
+          app.armarPestanas();
+        }
+      }
+    });
   }
-
-  if (!auth.perfilCompleto()) {
-    MenuCompletar.mostrar(arrancarApp);
-    return;
-  }
-
-  arrancarApp();
-})();
+};
 
 function arrancarApp() {
-  pintarZonaSesion();
-
-  const tipo = auth.tipoUsuario();
-
-  const tabsComunes = [
-    { texto: 'Mapa', idSeccion: 'seccion_mapa' },
-    { texto: 'Mis datos', idSeccion: 'seccion_datos' }
-  ];
-
-  let tabsRol = [];
-
-  if (tipo === 'admin sistema') {
-    tabsRol = [
-      { texto: 'Usuarios', idSeccion: 'seccion_usuarios' },
-      { texto: 'Solicitudes', idSeccion: 'seccion_solicitudes' },
-      { texto: 'Logs', idSeccion: 'seccion_logs' }
-    ];
+  if (!Sesion.hayUsuarioIngresado()) {
+    location.href = RAIZ + 'pages/login.html';
+    return;
   }
-  // TODO: tabs de "vecino", "operador camion", "admin operador" y
-  // "admin general" cuando estén definidos sus menús.
 
-  Tabs.armarBarraPrincipal([...tabsComunes, ...tabsRol]);
+  // Barra superior: logos, pestañas (se agregan después), idioma, tipo de usuario y salir.
+  const botonSalir = crearElemento('button', { type: 'button', clase: 'btn danger sm', alHacerClick: function () { Sesion.cerrarSesion(); } }, traducir('nav.logout'));
+  const zonaDerecha = crearElemento('div', { clase: 'right' },
+    Encabezado.crearSelectorDeIdioma(),
+    crearElemento('span', { clase: 'chip', texto: traducirValor(Sesion.tipo()) }),
+    botonSalir
+  );
 
-  MenuDatos.iniciar();
+  const barraSuperior = document.getElementById('top');
+  barraSuperior.append(
+    Encabezado.crearLogos(),
+    crearElemento('nav', { clase: 'nav', id: 'tabs', role: 'tablist' }),
+    zonaDerecha
+  );
+  Encabezado.montarPie();
 
-  if (tipo === 'admin sistema') {
-    MenuAdminUsuarios.iniciar();
-    MenuAdminSolicitudes.iniciar();
-    MenuAdminLogs.iniciar();
+  if (Sesion.perfilCompleto()) {
+    App.armarPestanas();
+  } else {
+    App.pedirDatosFaltantes();
   }
 }
 
-function pintarZonaSesion() {
-  zona_sesion.replaceChildren();
-
-  const chip = document.createElement('span');
-  chip.className = 'chip-rol';
-  chip.textContent = etiquetaTipoUsuario(auth.tipoUsuario());
-
-  const avatar = document.createElement('div');
-  avatar.className = 'avatar';
-  avatar.textContent = String(auth.ci()).slice(-2);
-
-  const botonSalir = document.createElement('button');
-  botonSalir.type = 'button';
-  botonSalir.className = 'btn-icono eliminar';
-  botonSalir.textContent = 'Cerrar sesión';
-  botonSalir.addEventListener('click', () => {
-    auth.cerrarSesion();
-    location.href = 'pages/login.html';
-  });
-
-  zona_sesion.append(chip, avatar, botonSalir);
-}
+arrancarApp();

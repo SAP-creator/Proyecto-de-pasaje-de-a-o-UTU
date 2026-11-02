@@ -1,94 +1,78 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nombre — Iniciar sesión</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SGeR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
+  <noscript>Esta aplicación necesita JavaScript habilitado.</noscript>
+  <header class="topbar" id="top"></header>
 
-  <div class="auth-page">
+  <main class="auth">
+    <div class="card">
+      <img class="logo" src="../assets/logo-sger.svg" alt="SGeR">
 
-    <a href="../index.html" class="back-link">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-      Volver al inicio
-    </a>
-
-    <div class="auth-card">
-
-      <a href="../index.html" class="auth-logo brand">
-        <span>N</span><span>o</span><span>m</span><span>b</span><span>r</span><span>e</span>
-      </a>
-
-      <div class="auth-tabs">
-        <div class="auth-tab active" id="tab_login">Iniciar sesión</div>
-        <div class="auth-tab" id="tab_register">Registrarse</div>
+      <!-- Selector entre ingresar y registrarse -->
+      <div class="seg">
+        <button type="button" id="boton-ingresar" class="on" data-i18n="login.in"></button>
+        <button type="button" id="boton-registrarse" data-i18n="login.up"></button>
       </div>
 
-      <!-- Formulario Login -->
-      <div id="form_login">
-        <p class="form-mensaje hidden" id="mensaje_login"></p>
-        <form class="auth-form" id="formulario_login">
-          <label>
-            Cédula de identidad
-            <input type="number" id="login_cedula" placeholder="Ej: 12345678" required>
-          </label>
-          <label>
-            Contraseña
-            <input type="password" id="login_password" placeholder="••••••••" required>
-          </label>
-          <button type="submit" class="btn-primary">Entrar</button>
-        </form>
-        <p class="auth-sep">
-          ¿No tenés cuenta? <span class="link-action" id="link_ir_registro">Registrate</span>
-        </p>
-      </div>
+      <!-- Formulario para ingresar -->
+      <form id="form-ingreso" novalidate>
+        <label class="f">
+          <span data-i18n="k.CI"></span>
+          <input type="text" name="ci" inputmode="numeric" autocomplete="username" data-i18n-ph="ph.ci">
+        </label>
+        <label class="f">
+          <span data-i18n="k.PASSWORD"></span>
+          <input type="password" name="password" autocomplete="current-password">
+        </label>
+        <div id="mensaje-ingreso" class="msg hidden" role="alert"></div>
+        <button type="submit" class="btn pri" data-i18n="login.enter"></button>
+      </form>
 
-      <!-- Formulario Registro -->
-      <div id="form_register" class="hidden">
-        <p class="form-mensaje hidden" id="mensaje_register"></p>
-        <form class="auth-form" id="formulario_registro">
-          <label>
-            Cédula de identidad
-            <input type="number" id="registro_cedula" placeholder="Ej: 12345678" required>
-          </label>
-          <label>
-            Tipo de usuario
-            <select id="registro_tipo" required>
-              <option value="" disabled selected>Seleccioná una opción</option>
-              <option value="admin planificador">Municipal · Planificador</option>
-              <option value="admin operador">Municipal · Operador</option>
-              <option value="operador camion">Camionero</option>
-              <option value="vecino">Usuario / Vecino</option>
-            </select>
-          </label>
-          <label>
-            Contraseña
-            <input type="password" id="registro_password" placeholder="••••••••" required>
-          </label>
-          <label>
-            Repetir contraseña
-            <input type="password" id="registro_confirmar" placeholder="••••••••" required>
-          </label>
-          <button type="submit" class="btn-primary">Enviar solicitud</button>
-        </form>
-        <p class="auth-sep">
-          Un administrador del sistema tiene que aprobar tu solicitud antes de que puedas entrar.
-        </p>
-        <p class="auth-sep">
-          ¿Ya tenés cuenta? <span class="link-action" id="link_ir_login">Iniciá sesión</span>
-        </p>
-      </div>
-
+      <!-- Formulario para registrarse (empieza oculto) -->
+      <form id="form-registro" class="hidden" novalidate>
+        <label class="f">
+          <span data-i18n="k.CI"></span>
+          <input type="text" name="ci" inputmode="numeric" autocomplete="off" data-i18n-ph="ph.ci">
+        </label>
+        <label class="f">
+          <span data-i18n="k.TYPEUSER"></span>
+          <select name="tipo" id="registro-tipo"></select>
+        </label>
+        <label class="f">
+          <span data-i18n="k.PASSWORD"></span>
+          <input type="password" name="password" autocomplete="new-password">
+        </label>
+        <label class="f">
+          <span data-i18n="login.repeat"></span>
+          <input type="password" name="password2" autocomplete="new-password">
+        </label>
+        <div id="mensaje-registro" class="msg hidden" role="alert"></div>
+        <button type="submit" class="btn pri" data-i18n="login.send"></button>
+      </form>
     </div>
-  </div>
+  </main>
 
+  <div id="foot"></div>
+
+  <script src="../js/errores-globales.js"></script>
   <script src="../js/config.js"></script>
-  <script src="../js/constants.js"></script>
-  <script src="../js/code-translator.js"></script>
+  <script src="../js/constantes.js"></script>
+  <script src="../js/idiomas/es.js"></script>
+  <script src="../js/idiomas/en.js"></script>
+  <script src="../js/idiomas/pt.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/dom.js"></script>
+  <script src="../js/sesion.js"></script>
   <script src="../js/api.js"></script>
-  <script src="../js/auth.js"></script>
+  <script src="../js/encabezado.js"></script>
   <script src="../js/login.js"></script>
 </body>
 </html>

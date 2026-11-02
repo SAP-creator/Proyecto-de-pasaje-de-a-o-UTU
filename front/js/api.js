@@ -1,119 +1,115 @@
-/**
- * api.js
- * Ejecuta peticiones contra la API a partir de las claves definidas en
- * RUTAS_API (constants.js) y traduce siempre la respuesta con
- * CodeTranslator antes de devolverla.
- */
+/*
+  api.js
+  Cliente de la API del backend.
 
-const ApiCliente = {
-  /**
-   * @param {string} urlKey       Clave de RUTAS_API (ej: "SIGN_IN").
-   * @param {object} [body]       Body a enviar (o payload en query si es GET).
-   * @param {object} [listaMapeo] Traducciones propias del módulo que llama.
-   * @returns {Promise<object>}   Body de la respuesta aplanado, más
-   *                              { codigo, esError, mensajeUsuario }.
-   */
-  async fetchDatos(urlKey, body, listaMapeo) {
-    const ruta = RUTAS_API[urlKey];
+  El backend siempre responde con este formato:
+    { "CODE": "OK C ApiAdminSys UsersFetched", "DATA": ... }
+  donde DATA puede ser:
+    - una lista (filas de una tabla)    -> respuesta.lista
+    - un objeto (detalle, token, etc.)  -> respuesta.datos
+    - nada (HTTP 204, sin cuerpo)
 
-    if (!ruta) {
-      console.error(`[API] La clave "${urlKey}" no existe en RUTAS_API.`);
-      return this._empaquetar(null, null, listaMapeo);
-    }
+  Dónde viaja el token (depende del verbo HTTP):
+    GET y DELETE -> header "X-Token" (el token en JSON y codificado en base64)
+                    y los datos en la URL como ?payload=<JSON>
+    POST y PUT   -> dentro del cuerpo JSON, bajo la clave "TOKEN"
+*/
 
-    const opciones = {
-      method: ruta.metodo,
-      headers: { 'Content-Type': 'application/json' }
-    };
+const Api = {
 
-    let url = URL_BASE + ruta.endpoint;
-    if (ruta.metodo === 'GET' || ruta.metodo === 'HEAD' || ruta.metodo === 'DELETE') {
-      if (body) url += '?payload=' + encodeURIComponent(JSON.stringify(body));
-    } else if (body) {
-      opciones.body = JSON.stringify(body);
-    }
+  // Llama a cualquier ruta de la API (ejemplo de ruta: "/user/sign/in").
+  llamar: async function (metodo, ruta, datosAEnviar) {
+    const token = Sesion.leerToken();
+    const opciones = { method: metodo, headers: {} };
+    let url = CONFIGURACION.URL_API + ruta;
 
-    let cuerpo = null;
-    let codigo = null;
-
-    try {
-      const respuesta = await fetch(url, opciones);
-      const textoCrudo = await respuesta.text();
-      cuerpo = textoCrudo ? JSON.parse(textoCrudo) : null;
-      codigo = this._extraerCodigo(cuerpo);
-    } catch (errorRed) {
-      console.error(`[API] Error en la petición a ${urlKey}:`, errorRed);
-      codigo = 'Error U ApiCliente ConnectionFailed';
-    }
-
-    if (codigo && CodeTranslator.esError(codigo)) {
-      console.error(`[API] ${ruta.metodo} ${ruta.endpoint} → ${CodeTranslator.traducirConsola(codigo)}`);
-    }
-
-    return this._empaquetar(cuerpo, codigo, listaMapeo);
-  },
-
-  _empaquetar(cuerpo, codigo, listaMapeo) {
-    return {
-      ...this._normalizar(cuerpo),
-      codigo,
-      esError: codigo ? CodeTranslator.esError(codigo) : false,
-      mensajeUsuario: CodeTranslator.traducirUsuario(codigo, listaMapeo)
-    };
-  },
-
-  /**
-   * El backend responde con un array de bloques: uno suele ser
-   * { CODE: "..." } y los siguientes son los datos (objeto con claves
-   * propias, o una lista cruda como en /requests o los logs). Esta
-   * función junta todo en un único objeto plano para poder leer
-   * "resultado.TOKEN" o "resultado.datos" directo.
-   */
-  _normalizar(cuerpo) {
-    if (Array.isArray(cuerpo)) {
-      const resultado = {};
-      for (const bloque of cuerpo) {
-        if (Array.isArray(bloque)) {
-          resultado.datos = bloque;
-        } else if (bloque && typeof bloque === 'object') {
-          for (const [clave, valor] of Object.entries(bloque)) {
-            if (clave === 'CODE') continue;
-            resultado[clave] = valor;
-          }
-        }
+    if (metodo === 'GET' || metodo === 'DELETE') {
+      if (token !== null) {
+        opciones.headers['X-Token'] = btoa(JSON.stringify(token));
       }
-      return resultado;
-    }
-
-    if (cuerpo && typeof cuerpo === 'object') {
-      const { CODE, ...resto } = cuerpo;
-      return resto;
-    }
-
-    return (cuerpo === null || cuerpo === undefined) ? {} : { datos: cuerpo };
-  },
-
-  /**
-   * Busca recursivamente el atributo CODE dentro de la respuesta.
-   */
-  _extraerCodigo(cuerpo) {
-    if (!cuerpo || typeof cuerpo !== 'object') return null;
-    if (cuerpo.CODE) return cuerpo.CODE;
-
-    if (Array.isArray(cuerpo)) {
-      for (const item of cuerpo) {
-        const encontrado = this._extraerCodigo(item);
-        if (encontrado) return encontrado;
+      const hayDatos = datosAEnviar && Object.keys(datosAEnviar).length > 0;
+      if (hayDatos) {
+        url = url + '?payload=' + encodeURIComponent(JSON.stringify(datosAEnviar));
       }
     } else {
-      for (const clave of Object.keys(cuerpo)) {
-        if (typeof cuerpo[clave] === 'object' && cuerpo[clave] !== null) {
-          const encontrado = this._extraerCodigo(cuerpo[clave]);
-          if (encontrado) return encontrado;
-        }
+      opciones.headers['Content-Type'] = 'application/json';
+      const cuerpo = Object.assign({}, datosAEnviar);
+      if (token !== null) {
+        cuerpo.TOKEN = token;
       }
+      opciones.body = JSON.stringify(cuerpo);
     }
 
-    return null;
+    // Esta es la respuesta que devolvemos siempre, haya salido bien o mal.
+    const respuesta = {
+      exito: false,
+      estadoHttp: 0,
+      codigo: null,
+      datos: {},
+      lista: [],
+      mensaje: ''
+    };
+
+    try {
+      console.log(opciones);
+      const respuestaHttp = await fetch(url, opciones);
+      respuesta.estadoHttp = respuestaHttp.status;
+
+      const textoDelCuerpo = await respuestaHttp.text();
+      this.leerCuerpo(textoDelCuerpo, respuesta);
+
+      const codigoIndicaError = respuesta.codigo !== null && !respuesta.codigo.startsWith('OK');
+      respuesta.exito = respuestaHttp.ok && !codigoIndicaError;
+    } catch (error) {
+      console.error('[API] No se pudo conectar:', metodo, ruta, error);
+      respuesta.codigo = 'Error U ApiCliente ConnectionFailed';
+    }
+    respuesta.mensaje = traducirCodigoDelServidor(respuesta.codigo, respuesta.exito, respuesta.estadoHttp);
+
+    if (!respuesta.exito) {
+      console.error('[API] ' + metodo + ' ' + ruta + ' -> ' + respuesta.estadoHttp + ' ' + respuesta.codigo);
+    }
+
+    const tokenInvalido = respuesta.estadoHttp === 401 && String(respuesta.codigo).includes('InvalidToken');
+    if (tokenInvalido && Sesion.hayUsuarioIngresado()) {
+      Sesion.cerrarSesion();
+    }
+
+    return respuesta;
+  },
+
+  // Igual que llamar(), pero antepone el prefijo del rol de la persona (por ejemplo "/user/vecino").
+  llamarComoRol: function (metodo, ruta, datosAEnviar) {
+    const prefijo = PREFIJO_API_POR_ROL[Sesion.tipo()];
+    return this.llamar(metodo, prefijo + ruta, datosAEnviar);
+  },
+
+  // Pasa el texto JSON recibido a los campos "codigo", "datos" y "lista" de la respuesta.
+  leerCuerpo: function (texto, respuesta) {
+    if (texto === '') {
+      return;
+    }
+
+    let cuerpo;
+    try {
+      cuerpo = JSON.parse(texto);
+    } catch (error) {
+      respuesta.codigo = 'Error U ApiCliente InvalidJson';
+      return;
+    }
+
+    if (cuerpo === null || typeof cuerpo !== 'object') {
+      return;
+    }
+
+    if (cuerpo.CODE) {
+      respuesta.codigo = cuerpo.CODE;
+    }
+
+    if (Array.isArray(cuerpo.DATA)) {
+      respuesta.lista = cuerpo.DATA;
+    } else if (cuerpo.DATA !== null && typeof cuerpo.DATA === 'object') {
+      respuesta.datos = cuerpo.DATA;
+    }
   }
 };

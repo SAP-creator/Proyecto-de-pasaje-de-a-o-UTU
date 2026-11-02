@@ -1,147 +1,70 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SGeR — Plan de recolección de residuos</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SGeR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <noscript>Esta aplicación necesita JavaScript habilitado.</noscript>
+  <header class="topbar" id="top"></header>
 
-  <!-- ===================== NAVBAR ===================== -->
-  <nav class="navbar">
-    <div class="navbar-logo brand">
-      <span class="highlight">SGeR</span><br>
-    </div>
-
-    <ul class="navbar-links">
-      <li><a href="#" class="link-yellow active">Página Principal</a></li>
-      <li><a href="app.html" class="link-green">Mapa</a></li>
-      <li><a href="#">Contactos</a></li>
-    </ul>
-  </nav>
-
-  <!-- ===================== HERO ===================== -->
-  <section class="hero">
-    <h1>
-      <span class="highlight">SGeR</span><br>
-      recolección de residuos
-    </h1>
-    <p>
-      Coordinamos la recolección de residuos en tu zona de forma eficiente,
-      reduciendo el impacto ambiental y mejorando la calidad de vida del barrio.
-    </p>
-    <div class="hero-actions">
-      <a href="app.html" class="btn-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Ver contenedores y rutas
-      </a>
-    </div>
-    <div class="hero-auth">
-      <a href="pages/login.html" class="btn-login">Log in</a>
-      <a href="pages/login.html" class="btn-signup">Sign up</a>
-    </div>
-  </section>
-
-  <!-- ===================== CTA ===================== -->
-  <section class="cta-section">
-    <div class="cta-box">
-      <h2>Reporta daños para ayudar a la comunidad y al barrio</h2>
-      <p>
-        Formá parte de los miles de vecinos que colaboran para mantener
-        el barrio limpio con SGeR.
-      </p>
-      <div class="cta-form">
-        <input type="email" placeholder="Ingresá tu email de trabajo">
-        <button class="btn-primary" id="cta_ir_registro">Sign up</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== FOOTER ===================== -->
-  <footer>
-    <div class="footer-cols">
-      <div class="footer-col">
-        <h4>Producto</h4>
-        <ul>
-          <li><a href="#">Dashboard</a></li>
-          <li><a href="#">Apps &amp; Integraciones</a></li>
-          <li><a href="#">Developer Platform</a></li>
-          <li><a href="#">for iOS</a></li>
-          <li><a href="#">Enterprise</a></li>
-          <li><a href="#">Accesibilidad</a></li>
-          <li><a href="#">Changelog</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Soporte</h4>
-        <ul>
-          <li><a href="#">Contacto</a></li>
-          <li><a href="#">Pagos</a></li>
-          <li><a href="#">Redeem Code</a></li>
-          <li><a href="#">Educational &amp; NPOs</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Empresa</h4>
-        <ul>
-          <li><a href="#">About Us</a></li>
-          <li><a href="#">Business</a></li>
-          <li><a href="#">Pricing</a></li>
-          <li><a href="#">Publications</a></li>
-          <li><a href="#">Investors</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Recursos</h4>
-        <ul>
-          <li><a href="#">What's new</a></li>
-          <li><a href="#">Blog</a></li>
-          <li><a href="#">Help Center</a></li>
-          <li><a href="#">Press</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Ubicación</h4>
-        <div class="footer-location">
-          🇺🇾 Uruguay
-        </div>
-        <div class="footer-social">
-          <!-- Instagram -->
-          <a href="#" aria-label="Instagram">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-            </svg>
-          </a>
-          <!-- Facebook -->
-          <a href="#" aria-label="Facebook">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-            </svg>
-          </a>
-          <!-- YouTube -->
-          <a href="#" aria-label="YouTube">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22.54 6.42A2.78 2.78 0 0 0 20.6 4.47C18.88 4 12 4 12 4s-6.88 0-8.6.47A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.4 19.53C5.12 20 12 20 12 20s6.88 0 8.6-.47a2.78 2.78 0 0 0 1.94-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
-            </svg>
-          </a>
-          <!-- X -->
-          <a href="#" aria-label="X">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L2.25 2.25h5.087l4.26 5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-            </svg>
-          </a>
+  <main>
+    <!-- Presentación: texto a la izquierda y tres tarjetas a la derecha. -->
+    <section class="hero">
+      <div class="copy">
+        <h1 data-i18n="home.title"></h1>
+        <p data-i18n="home.lead"></p>
+        <div class="cta">
+          <a class="login" href="pages/login.html" data-i18n="nav.login"></a>
+          <a class="btn pri pill" href="pages/login.html?m=up" data-i18n="nav.signup"></a>
         </div>
       </div>
-    </div>
 
-    <div class="footer-bottom">
-      <span>© 2026 SGeR</span>
-      <a href="#">Términos de Servicio</a>
-      <a href="#">Política de Cookies</a>
-    </div>
-  </footer>
+      <!-- Cada "slot" es un espacio reservado. Reemplazalo por un <img> o <video> con el material real. -->
+      <div class="stack">
+        <div class="slot" data-i18n="home.s1"></div>
+        <div class="slot" data-i18n="home.s2"></div>
+        <div class="slot" data-i18n="home.s3"></div>
+      </div>
+    </section>
 
-  <script src="js/index.js"></script>
+    <!-- Video del camión y texto sobre el trabajo. -->
+    <section class="band">
+      <div class="slot" data-i18n="home.video"></div>
+      <div class="slot" data-i18n="home.work"></div>
+    </section>
+
+    <!-- GIFs a los costados y llamada a participar en el centro. -->
+    <section class="trio">
+      <div class="slot dark" data-i18n="home.gif1"></div>
+      <div class="mid">
+        <div class="slot dark" data-i18n="home.join"></div>
+        <div class="cta">
+          <a class="login" href="pages/login.html" data-i18n="nav.login"></a>
+          <a class="btn pri pill" href="pages/login.html?m=up" data-i18n="nav.signup"></a>
+        </div>
+      </div>
+      <div class="slot dark" data-i18n="home.gif2"></div>
+    </section>
+  </main>
+
+  <div id="foot"></div>
+
+  <script src="js/errores-globales.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/constantes.js"></script>
+  <script src="js/idiomas/es.js"></script>
+  <script src="js/idiomas/en.js"></script>
+  <script src="js/idiomas/pt.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/dom.js"></script>
+  <script src="js/sesion.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/encabezado.js"></script>
+  <script src="js/inicio.js"></script>
 </body>
 </html>
