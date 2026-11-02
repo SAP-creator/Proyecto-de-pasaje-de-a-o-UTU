@@ -5,7 +5,12 @@ class Util_DbConnection {
     private mysqli $connection;
 
     public function __construct() {
-        $this->connection = new mysqli("localhost", "root", "", "DB");
+        $host = getenv("DB_HOST") ?: "localhost";
+        $user = getenv("DB_USER") ?: "root";
+        $password = getenv("DB_PASSWORD");
+        $database = getenv("DB_NAME") ?: "DB";
+
+        $this->connection = new mysqli($host, $user, $password === false ? "" : $password, $database);
 
         if ($this->connection->connect_error) {
             throw new Exception("Connection error: " . $this->connection->connect_error);

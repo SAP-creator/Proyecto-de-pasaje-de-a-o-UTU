@@ -1,5 +1,5 @@
 <?php
-# Api de admin operador (AO): lo del vecino + ver centros, gestionar incidentes, retirar y ver retiros.
+# Api de admin operador (AO): lo del vecino + ver centros, gestionar incidentes, retirar, ver retiros y aprobar ejecuciones.
 
 include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../constantes/Const_Sql.php";
@@ -38,6 +38,7 @@ Util_Router::run(path_api_admin_operador, [enum_tipo_admin_operador], [
         "DELETE /trayecto" =>              [Controller_Trayecto::class, "delete_trayecto"],
         "GET /ejecucion" =>                [Controller_Ejecucion::class, "get_ejecuciones"],
         "GET /ejecucion/data" =>           [Controller_Ejecucion::class, "get_ejecucion"],
+        "POST /ejecucion/aprobar" =>       [Controller_Ejecucion::class, "aprobar"],
         "POST /ejecucion/pausar" =>        [Controller_Ejecucion::class, "pausar"],
         "POST /ejecucion/cancelar" =>      [Controller_Ejecucion::class, "cancelar"],
 ]);

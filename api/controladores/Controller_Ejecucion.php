@@ -18,6 +18,7 @@ class Controller_Ejecucion
     private const ROLES_OPERARIO = [enum_tipo_operario];
     private const ROLES_OPERARIO_O_ADMIN = [enum_tipo_operario, enum_tipo_admin_operador];
     private const ROLES_PLANIFICADOR = [enum_tipo_admin_general];
+    private const ROLES_APROBADORES = [enum_tipo_admin_general, enum_tipo_admin_operador];
 
     public static function get_ejecuciones(array $data): Util_HttpResponse
     {
@@ -57,10 +58,10 @@ class Controller_Ejecucion
         return Util_HttpResponse::ok(self::code("ExecutionFetched"), [json_ejecucion => Util_Translator::sql_to_json_keys($row)]);
     }
 
-    /** AP crea directamente una ejecución aprobada, tomando el calendario del trayecto. */
+    /** AP o AO crean directamente una ejecución aprobada, tomando el calendario del trayecto. */
     public static function aprobar(array $data): Util_HttpResponse
     {
-        $actor = self::authorize($data, self::ROLES_PLANIFICADOR);
+        $actor = self::authorize($data, self::ROLES_APROBADORES);
         $payload = Util_VerifyData::verify_and_get_array($data, json_ejecucion);
         Util_VerifyData::keys_exists(true, $payload, json_id_trayecto, json_fecha_programada, json_id_camion, json_cedula_operario);
         $id_trayecto = self::positive_int($payload[json_id_trayecto]);
