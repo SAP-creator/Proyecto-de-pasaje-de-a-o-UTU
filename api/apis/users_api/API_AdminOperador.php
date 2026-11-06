@@ -22,6 +22,7 @@ Util_Router::run(path_api_admin_operador, [enum_tipo_admin_operador], [
         "GET /centro" =>                   [Controller_Centro::class, "get_centros"],
         "GET /centro/data" =>              [Controller_Centro::class, "get_centro"],
         "POST /centro/retiro" =>           [Controller_Centro::class, "retirar"],
+        "POST /centro/ajuste" =>           [Controller_Centro::class, "ajustar_volumen"],
         "GET /centro/retiro" =>            [Controller_Centro::class, "get_retiros"],
         "GET /ruta" =>                     [Controller_Ruta::class, "get_rutas"],
         "GET /ruta/data" =>                [Controller_Ruta::class, "get_ruta"],
@@ -39,6 +40,5 @@ Util_Router::run(path_api_admin_operador, [enum_tipo_admin_operador], [
         "GET /ejecucion" =>                [Controller_Ejecucion::class, "get_ejecuciones"],
         "GET /ejecucion/data" =>           [Controller_Ejecucion::class, "get_ejecucion"],
         "POST /ejecucion/aprobar" =>       [Controller_Ejecucion::class, "aprobar"],
-        "POST /ejecucion/pausar" =>        [Controller_Ejecucion::class, "pausar"],
-        "POST /ejecucion/cancelar" =>      [Controller_Ejecucion::class, "cancelar"],
+        "POST /ejecucion/rechazar" =>      [Controller_Ejecucion::class, "rechazar"],
 ]);

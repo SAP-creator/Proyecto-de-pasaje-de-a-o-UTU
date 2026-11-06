@@ -251,6 +251,39 @@ class Model_Centro
         return $retirado;
     }
 
+    /** Ajusta directamente el volumen real de un almacenamiento, todo o nada. */
+    public static function ajustar_volumen(int $id_centro, int $id_almacenamiento, float $volumen): ?bool
+    {
+        $db = new Util_DbConnection();
+        $db->begin();
+        $actual = self::ejecutar(
+            $db,
+            "Bloquear almacenamiento {$id_almacenamiento} para ajustar volumen",
+            "SELECT " . sql_id . " FROM " . sql_tabla_almacenamiento_centro . " WHERE " . sql_id . " = ? AND " . sql_id_centro . " = ? FOR UPDATE",
+            "ii",
+            [$id_almacenamiento, $id_centro]
+        );
+        if (!$actual->success || $actual->data->num_rows !== 1) {
+            $db->rollback();
+            return $actual->success ? false : null;
+        }
+
+        $resultado = self::ejecutar(
+            $db,
+            "Ajustar volumen del almacenamiento {$id_almacenamiento}",
+            "UPDATE " . sql_tabla_almacenamiento_centro . " SET " . sql_volumen_actual . " = ? WHERE " . sql_id . " = ? AND " . sql_id_centro . " = ?",
+            "dii",
+            [$volumen, $id_almacenamiento, $id_centro]
+        );
+        if (!$resultado->success) {
+            $db->rollback();
+            return null;
+        }
+
+        $db->commit();
+        return true;
+    }
+
     /**
      * Historial de retiros, del mas nuevo al mas viejo. Con $id_almacenamiento > 0 filtra por almacenamiento.
      *

@@ -307,16 +307,73 @@ class Model_Contenedor
      * Vacia el contenedor: llenado 0, copia de los tipos de basura vaciados y
      * ajuste de Sobre_llenado. Todo o nada.
      */
-    public static function empty_contenedor(int $id, array $tipos, string $fecha): ?bool
+    public static function empty_contenedor(int $id, array $tipos, string $fecha, ?int $id_ejecucion = null, ?string $operario = null): string
     {
         $db = new Util_DbConnection();
         $db->begin();
 
         try {
+            if ($id_ejecucion !== null) {
+                $ejecucion = self::ejecutar(
+                    $db,
+                    "Validar ejecucion {$id_ejecucion} para vaciar contenedor {$id}",
+                    "SELECT " . sql_estado_ejecucion . ", " . sql_cedula_operario . " FROM " . sql_tabla_ejecucion . " WHERE " . sql_id . " = ? FOR UPDATE",
+                    "i",
+                    [$id_ejecucion]
+                );
+                if (!$ejecucion->success) {
+                    throw new RuntimeException("db");
+                }
+                $fila_ejecucion = $ejecucion->data->fetch_assoc();
+                if ($fila_ejecucion === null) {
+                    $db->rollback();
+                    return "execution_not_found";
+                }
+                if ($fila_ejecucion[sql_cedula_operario] !== $operario) {
+                    $db->rollback();
+                    return "forbidden";
+                }
+                if ($fila_ejecucion[sql_estado_ejecucion] !== enum_ejecucion_en_curso) {
+                    $db->rollback();
+                    return "invalid_state";
+                }
+
+                $relacion = self::ejecutar(
+                    $db,
+                    "Validar contenedor {$id} dentro de ejecucion {$id_ejecucion}",
+                    "SELECT " . sql_vaciado . " FROM " . sql_tabla_ejecucion_contenedor . " WHERE " . sql_id_ejecucion . " = ? AND " . sql_id_contenedor . " = ? FOR UPDATE",
+                    "ii",
+                    [$id_ejecucion, $id]
+                );
+                if (!$relacion->success) {
+                    throw new RuntimeException("db");
+                }
+                $fila_relacion = $relacion->data->fetch_assoc();
+                if ($fila_relacion === null) {
+                    $db->rollback();
+                    return "not_in_execution";
+                }
+                if ((bool) $fila_relacion[sql_vaciado]) {
+                    $db->rollback();
+                    return "already_emptied";
+                }
+            }
+
             $ok = self::insertar_llenado($db, $id, llenado_vacio, $fecha);
 
             if ($ok) {
                 $ok = self::insertar_vaciado($db, $id, $tipos, $fecha);
+            }
+
+            if ($ok && $id_ejecucion !== null) {
+                $actualizar_ejecucion = self::ejecutar(
+                    $db,
+                    "Marcar contenedor {$id} vaciado en ejecucion {$id_ejecucion}",
+                    "UPDATE " . sql_tabla_ejecucion_contenedor . " SET " . sql_vaciado . " = 1 WHERE " . sql_id_ejecucion . " = ? AND " . sql_id_contenedor . " = ? AND " . sql_vaciado . " = 0",
+                    "ii",
+                    [$id_ejecucion, $id]
+                );
+                $ok = $actualizar_ejecucion->success && $actualizar_ejecucion->affected_rows === 1;
             }
 
             if ($ok) {
@@ -328,11 +385,11 @@ class Model_Contenedor
 
         if (!$ok) {
             $db->rollback();
-            return null;
+            return "db_error";
         }
 
         $db->commit();
-        return true;
+        return "ok";
     }
 
     /**
@@ -399,9 +456,16 @@ class Model_Contenedor
         }
 
         if ($estado !== "") {
-            $where[] = sql_estado_incidente . " = ?";
-            $types .= "s";
-            $params[] = $estado;
+            if ($estado === enum_incidente_terminado) {
+                $where[] = sql_estado_incidente . " IN (?, ?)";
+                $types .= "ss";
+                $params[] = enum_incidente_terminado;
+                $params[] = enum_incidente_resuelto;
+            } else {
+                $where[] = sql_estado_incidente . " = ?";
+                $types .= "s";
+                $params[] = $estado;
+            }
         }
 
         $where_clause = empty($where) ? "" : "WHERE " . implode(" AND ", $where);

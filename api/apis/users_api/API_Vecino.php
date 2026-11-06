@@ -1,11 +1,12 @@
 <?php
-# Api de vecino (V): ve contenedores y rutas, reporta estados e incidentes.
+# Api de vecino (V): ve contenedores, rutas y centros de acopio, reporta estados e incidentes.
 
 include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../constantes/Const_Sql.php";
 include_once __DIR__ . "/../../utils/Util_Router.php";
 include_once __DIR__ . "/../../controladores/Controller_Contenedor.php";
 include_once __DIR__ . "/../../controladores/Controller_Ruta.php";
+include_once __DIR__ . "/../../controladores/Controller_Centro.php";
 
 Util_Router::run(path_api_vecino, [enum_tipo_vecino], [
         "GET /contenedor" =>            [Controller_Contenedor::class, "get_contenedores"],
@@ -13,6 +14,8 @@ Util_Router::run(path_api_vecino, [enum_tipo_vecino], [
         "POST /contenedor/estado" =>    [Controller_Contenedor::class, "add_estado"],
         "POST /contenedor/incidente" => [Controller_Contenedor::class, "create_incidente"],
         "GET /contenedor/incidente" =>  [Controller_Contenedor::class, "get_incidentes"],
+        "GET /centro" =>                [Controller_Centro::class, "get_centros"],
+        "GET /centro/data" =>           [Controller_Centro::class, "get_centro"],
         "GET /ruta" =>                  [Controller_Ruta::class, "get_rutas"],
         "GET /ruta/data" =>             [Controller_Ruta::class, "get_ruta"],
         "GET /ruta/contenedor" =>       [Controller_Ruta::class, "get_contenedor_en_slot"],

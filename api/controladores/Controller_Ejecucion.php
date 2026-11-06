@@ -14,11 +14,10 @@ class Controller_Ejecucion
 {
     private const LOG_TYPE = "EJECUCION CONTROLLER";
     private const SYS_NAME = "ApiEjecucion";
-    private const ROLES_VER = [enum_tipo_operario, enum_tipo_admin_operador, enum_tipo_admin_general];
+    private const ROLES_VER = [enum_tipo_operario, enum_tipo_admin_operador];
     private const ROLES_OPERARIO = [enum_tipo_operario];
-    private const ROLES_OPERARIO_O_ADMIN = [enum_tipo_operario, enum_tipo_admin_operador];
-    private const ROLES_PLANIFICADOR = [enum_tipo_admin_general];
-    private const ROLES_APROBADORES = [enum_tipo_admin_general, enum_tipo_admin_operador];
+    private const ROLES_ADMIN_OPERADOR = [enum_tipo_admin_operador];
+    private const ROLES_APROBADORES = [enum_tipo_admin_operador];
 
     public static function get_ejecuciones(array $data): Util_HttpResponse
     {
@@ -29,12 +28,13 @@ class Controller_Ejecucion
             return self::error($actor, "InvalidExecutionState", http_unprocessable_entity, "Estado de ejecución inválido");
         }
         if (array_key_exists(json_id_trayecto, $data)) {
-            $id_trayecto = filter_var($data[json_id_trayecto], FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]);
-            if ($id_trayecto === false) {
+            $id_trayecto = Util_VerifyData::valid_int($data[json_id_trayecto], 1);
+            if ($id_trayecto === null) {
                 return self::error($actor, "InvalidTripId", http_unprocessable_entity, "ID de trayecto inválido");
             }
         }
-        $rows = Model_Ejecucion::get_ejecuciones($estado, $id_trayecto);
+        $es_operario = self::role($data) === enum_tipo_operario;
+        $rows = Model_Ejecucion::get_ejecuciones($estado, $id_trayecto, $es_operario ? $actor : null);
         if ($rows === null) {
             return self::error($actor, "GetExecutionsError", http_internal_error, "Error al listar ejecuciones");
         }
@@ -54,23 +54,26 @@ class Controller_Ejecucion
         if ($row === []) {
             return self::error($actor, "ExecutionNotFound", http_not_found, "Ejecución {$id} inexistente");
         }
+        if (self::role($data) === enum_tipo_operario && (string) $row[sql_cedula_operario] !== $actor) {
+            return self::error($actor, "ExecutionNotFound", http_not_found, "Ejecución {$id} inexistente");
+        }
         Model_Log::add_log_user((int) $actor, self::LOG_TYPE, "Consultó ejecución {$id}");
         return Util_HttpResponse::ok(self::code("ExecutionFetched"), [json_ejecucion => Util_Translator::sql_to_json_keys($row)]);
     }
 
-    /** AP o AO crean directamente una ejecución aprobada, tomando el calendario del trayecto. */
+    /** Solo AO aprueba una ejecución, tomando el calendario del trayecto. */
     public static function aprobar(array $data): Util_HttpResponse
     {
         $actor = self::authorize($data, self::ROLES_APROBADORES);
         $payload = Util_VerifyData::verify_and_get_array($data, json_ejecucion);
         Util_VerifyData::keys_exists(true, $payload, json_id_trayecto, json_fecha_programada, json_id_camion, json_cedula_operario);
-        $id_trayecto = self::positive_int($payload[json_id_trayecto]);
-        $id_camion = self::positive_int($payload[json_id_camion]);
+        $id_trayecto = Util_VerifyData::valid_int($payload[json_id_trayecto], 1);
+        $id_camion = Util_VerifyData::valid_int($payload[json_id_camion], 1);
         if ($id_trayecto === null || $id_camion === null) {
             return self::error($actor, "InvalidExecutionAssignment", http_unprocessable_entity, "Trayecto y camión deben tener IDs positivos");
         }
         $fecha = $payload[json_fecha_programada];
-        if (!self::valid_date($fecha)) {
+        if (!Util_VerifyData::valid_date($fecha, "!Y-m-d")) {
             return self::error($actor, "InvalidScheduledDate", http_unprocessable_entity, "La fecha programada debe usar formato YYYY-MM-DD");
         }
         $operario = $payload[json_cedula_operario];
@@ -104,10 +107,9 @@ class Controller_Ejecucion
 
     public static function pausar(array $data): Util_HttpResponse
     {
-        $actor = self::authorize($data, self::ROLES_OPERARIO_O_ADMIN);
+        $actor = self::authorize($data, self::ROLES_OPERARIO);
         $id = self::execution_id($data);
-        $is_admin = self::role($data) === enum_tipo_admin_operador;
-        return self::transition($actor, $id, Model_Ejecucion::pausar($id, $actor, $is_admin), "ExecutionPaused");
+        return self::transition($actor, $id, Model_Ejecucion::pausar($id, $actor, false), "ExecutionPaused");
     }
 
     public static function reanudar(array $data): Util_HttpResponse
@@ -122,33 +124,36 @@ class Controller_Ejecucion
         $actor = self::authorize($data, self::ROLES_OPERARIO);
         $payload = Util_VerifyData::verify_and_get_array($data, json_ejecucion);
         $id = Util_VerifyData::verify_and_get_int($payload, json_id);
-        $llenado = null;
-        if (array_key_exists(json_llenado_camion, $payload)) {
-            $llenado = filter_var($payload[json_llenado_camion], FILTER_VALIDATE_INT, ["options" => ["min_range" => llenado_vacio, "max_range" => llenado_sobrellenado]]);
-            if ($llenado === false) {
-                return self::error($actor, "InvalidTruckFill", http_unprocessable_entity, "Llenado del camión debe ser un entero de 0 a 11");
+        $llenado = Util_VerifyData::valid_int($payload[json_llenado_camion] ?? null, 0, 10);
+        if ($llenado === null) {
+            return self::error($actor, "InvalidTruckFill", http_unprocessable_entity, "El llenado del camión debe ser un porcentaje entero de 0 a 10");
+        }
+        $id_almacenamiento = null;
+        if (array_key_exists(json_id_almacenamiento, $payload)) {
+            $id_almacenamiento = Util_VerifyData::valid_int($payload[json_id_almacenamiento], 1);
+            if ($id_almacenamiento === null) {
+                return self::error($actor, "InvalidDestinationStorage", http_unprocessable_entity, "El almacenamiento de destino no es válido");
             }
         }
-        return self::transition($actor, $id, Model_Ejecucion::terminar($id, $actor, $llenado), "ExecutionFinished");
+        return self::transition($actor, $id, Model_Ejecucion::terminar($id, $actor, $llenado, $id_almacenamiento), "ExecutionFinished");
     }
 
     public static function cancelar(array $data): Util_HttpResponse
     {
-        $actor = self::authorize($data, self::ROLES_OPERARIO_O_ADMIN);
+        $actor = self::authorize($data, self::ROLES_OPERARIO);
         $payload = Util_VerifyData::verify_and_get_array($data, json_ejecucion);
         $id = Util_VerifyData::verify_and_get_int($payload, json_id);
         $notes = $payload[json_notas] ?? null;
         if ($notes !== null && !is_string($notes)) {
             return self::error($actor, "InvalidNotes", http_unprocessable_entity, "Las notas deben ser texto");
         }
-        $is_admin = self::role($data) === enum_tipo_admin_operador;
-        return self::transition($actor, $id, Model_Ejecucion::cancelar($id, $actor, $is_admin, $notes), "ExecutionCancelled");
+        return self::transition($actor, $id, Model_Ejecucion::cancelar($id, $actor, false, $notes), "ExecutionCancelled");
     }
 
-    /** AP may reject/revoke an approved but not yet started execution. */
+    /** Solo AO puede rechazar una ejecución aprobada que todavía no comenzó. */
     public static function rechazar(array $data): Util_HttpResponse
     {
-        $actor = self::authorize($data, self::ROLES_PLANIFICADOR);
+        $actor = self::authorize($data, self::ROLES_ADMIN_OPERADOR);
         $payload = Util_VerifyData::verify_and_get_array($data, json_ejecucion);
         $id = Util_VerifyData::verify_and_get_int($payload, json_id);
         $notes = $payload[json_notas] ?? null;
@@ -188,23 +193,10 @@ class Controller_Ejecucion
             "route_busy" => self::error($actor, "RouteAlreadyExecuting", http_conflict, "Ya hay una ejecución activa para esta ruta"),
             "conflict" => self::error($actor, "ExecutionStateConflict", http_conflict, "La ejecución o el camión cambió de estado simultáneamente"),
             "truck_unavailable" => self::error($actor, "TruckUnavailable", http_conflict, "El camión no está disponible"),
+            "destination_required" => self::error($actor, "DestinationRequired", http_unprocessable_entity, "Hay varios almacenamientos en el centro final; selecciona el destino"),
+            "destination_unavailable" => self::error($actor, "DestinationUnavailable", http_unprocessable_entity, "El centro final no tiene un almacenamiento disponible para recibir la carga"),
             default => self::error($actor, "ExecutionTransitionError", http_internal_error, "No se pudo actualizar la ejecución")
         };
-    }
-
-    private static function positive_int(mixed $value): ?int
-    {
-        $result = filter_var($value, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]);
-        return $result === false ? null : $result;
-    }
-
-    private static function valid_date(mixed $value): bool
-    {
-        if (!is_string($value)) {
-            return false;
-        }
-        $date = DateTime::createFromFormat("!Y-m-d", $value);
-        return $date !== false && $date->format("Y-m-d") === $value;
     }
 
     private static function error(string $actor, string $name, int $status, string $description): Util_HttpResponse

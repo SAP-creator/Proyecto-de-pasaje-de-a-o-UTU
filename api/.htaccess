@@ -15,7 +15,7 @@ RewriteRule ^user/adminsys(/.*)?$ apis/users_api/API_AdminSys.php [L,QSA]
 RewriteRule ^user/vecino(/.*)?$ apis/users_api/API_Vecino.php [L,QSA]
 RewriteRule ^user/operador(/.*)?$ apis/users_api/API_Operador.php [L,QSA]
 RewriteRule ^user/adminoperador(/.*)?$ apis/users_api/API_AdminOperador.php [L,QSA]
-RewriteRule ^user/admingeneral(/.*)?$ apis/users_api/API_AdminGeneral.php [L,QSA]
+RewriteRule ^user/planificador(/.*)?$ apis/users_api/API_Planificador.php [L,QSA]
 RewriteRule ^borrar_datos(/.*)?$ apis/API_Teapot.php [L,QSA]
 
 #-API DEFAULT USUARIO 

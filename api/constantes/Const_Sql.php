@@ -152,10 +152,12 @@ const sql_incidente_tipo = [
 const enum_incidente_pendiente = "Pendiente";
 const enum_incidente_en_proceso = "En proceso";
 const enum_incidente_resuelto = "Resuelto";
+const enum_incidente_terminado = "Terminado";
 const sql_incidente_estado = [
     enum_incidente_pendiente,
     enum_incidente_en_proceso,
-    enum_incidente_resuelto
+    enum_incidente_terminado,
+    enum_incidente_resuelto // Compatibilidad con registros anteriores.
 ];
 
 

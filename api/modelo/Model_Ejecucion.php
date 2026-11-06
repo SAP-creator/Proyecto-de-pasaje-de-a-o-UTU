@@ -8,7 +8,7 @@ class Model_Ejecucion
 {
     private const MODEL_LOG = "EJECUCION MODEL";
 
-    public static function get_ejecuciones(?string $estado = null, ?int $id_trayecto = null): ?array
+    public static function get_ejecuciones(?string $estado = null, ?int $id_trayecto = null, ?string $cedula_operario = null): ?array
     {
         $where = [];
         $types = "";
@@ -22,6 +22,11 @@ class Model_Ejecucion
             $where[] = "e." . sql_id_trayecto . " = ?";
             $types .= "i";
             $params[] = $id_trayecto;
+        }
+        if ($cedula_operario !== null) {
+            $where[] = "e." . sql_cedula_operario . " = ?";
+            $types .= "s";
+            $params[] = $cedula_operario;
         }
         $sql = "SELECT e.*, e." . sql_estado_ejecucion . " AS " . sql_estado_ejecucion_alias . " FROM " . sql_tabla_ejecucion . " e" . (empty($where) ? "" : " WHERE " . implode(" AND ", $where)) . " ORDER BY e." . sql_fecha_programada . " DESC, e." . sql_id . " DESC";
         $result = self::execute($sql, "Listar ejecuciones", $types, $params);
@@ -235,9 +240,9 @@ class Model_Ejecucion
         }
     }
 
-    public static function terminar(int $id, string $operario, ?int $llenado): string
+    public static function terminar(int $id, string $operario, int $llenado, ?int $id_almacenamiento = null): string
     {
-        return self::finish_or_cancel($id, enum_ejecucion_en_curso, enum_ejecucion_finalizada, $operario, $llenado, false);
+        return self::finish_or_cancel($id, enum_ejecucion_en_curso, enum_ejecucion_finalizada, $operario, $llenado, true, null, null, $id_almacenamiento);
     }
 
     public static function rechazar(int $id, ?string $notas): string
@@ -300,7 +305,7 @@ class Model_Ejecucion
         }
     }
 
-    private static function finish_or_cancel(int $id, string $expected, string $next, string $actor, ?int $llenado, bool $allow_paused, ?string $notas = null, ?Util_DbConnection $transaction = null): string
+    private static function finish_or_cancel(int $id, string $expected, string $next, string $actor, ?int $llenado, bool $allow_paused, ?string $notas = null, ?Util_DbConnection $transaction = null, ?int $id_almacenamiento = null): string
     {
         $owns_transaction = $transaction === null;
         $db = $transaction ?? new Util_DbConnection();
@@ -313,7 +318,11 @@ class Model_Ejecucion
                 if ($owns_transaction) $db->rollback();
                 return "not_found";
             }
-            $allowed = $allow_paused ? [enum_ejecucion_aprobada, enum_ejecucion_en_curso, enum_ejecucion_pausada] : [$expected];
+            $allowed = $allow_paused
+                ? ($next === enum_ejecucion_cancelada
+                    ? [enum_ejecucion_aprobada, enum_ejecucion_en_curso, enum_ejecucion_pausada]
+                    : [$expected, enum_ejecucion_pausada])
+                : [$expected];
             if (!in_array($execution[sql_estado_ejecucion], $allowed, true)) {
                 if ($owns_transaction) $db->rollback();
                 return "invalid_state";
@@ -321,6 +330,13 @@ class Model_Ejecucion
             if ($next === enum_ejecucion_finalizada && $execution[sql_cedula_operario] !== $actor) {
                 if ($owns_transaction) $db->rollback();
                 return "forbidden";
+            }
+            if ($next === enum_ejecucion_finalizada && $llenado > 0) {
+                $transferencia = self::transferir_carga($db, $execution, $llenado, $id_almacenamiento);
+                if ($transferencia !== "ok") {
+                    if ($owns_transaction) $db->rollback();
+                    return $transferencia;
+                }
             }
             $sql = "UPDATE " . sql_tabla_ejecucion . " SET " . sql_estado_ejecucion . " = ?, " . sql_fecha_final . " = NOW(), " . sql_llenado_camion . " = ?" . ($notas === null ? "" : ", " . sql_notas . " = ?") . " WHERE " . sql_id . " = ? AND " . sql_estado_ejecucion . " = ?";
             $types = $notas === null ? "siis" : "sisis";
@@ -347,6 +363,66 @@ class Model_Ejecucion
             if ($owns_transaction) $db->rollback();
             return "db_error";
         }
+    }
+
+    /** Suma al almacenamiento final el porcentaje declarado del volumen del camión. */
+    private static function transferir_carga(Util_DbConnection $db, array $execution, int $porcentaje, ?int $id_almacenamiento): string
+    {
+        $truck = self::query($db,
+            "SELECT " . sql_cantidad . " FROM " . sql_tabla_camion . " WHERE " . sql_id . " = ? FOR UPDATE",
+            "Consultar capacidad del camion de ejecucion",
+            "i",
+            [(int) $execution[sql_id_camion]]
+        );
+        $route = self::query($db,
+            "SELECT " . sql_id_centro_final . " FROM " . sql_tabla_ruta . " WHERE " . sql_id . " = ? FOR UPDATE",
+            "Consultar centro final de ejecucion",
+            "i",
+            [(int) $execution[sql_id_ruta]]
+        );
+        if (!$truck->success || !$route->success) {
+            throw new RuntimeException("db");
+        }
+        $truck_row = $truck->data->fetch_assoc();
+        $route_row = $route->data->fetch_assoc();
+        if ($truck_row === null || $route_row === null || $route_row[sql_id_centro_final] === null) {
+            return "destination_unavailable";
+        }
+
+        $id_centro = (int) $route_row[sql_id_centro_final];
+        $types = "i";
+        $params = [$id_centro];
+        $sql = "SELECT " . sql_id . " FROM " . sql_tabla_almacenamiento_centro . " WHERE " . sql_id_centro . " = ?";
+        if ($id_almacenamiento !== null) {
+            $sql .= " AND " . sql_id . " = ?";
+            $types .= "i";
+            $params[] = $id_almacenamiento;
+        }
+        $sql .= " ORDER BY " . sql_id . " ASC FOR UPDATE";
+        $stores = self::query($db, $sql, "Bloquear almacenamiento de destino", $types, $params);
+        if (!$stores->success) {
+            throw new RuntimeException("db");
+        }
+        $rows = $stores->data->fetch_all(MYSQLI_ASSOC);
+        if (count($rows) === 0) {
+            return "destination_unavailable";
+        }
+        if ($id_almacenamiento === null && count($rows) !== 1) {
+            return "destination_required";
+        }
+
+        $id_destino = (int) $rows[0][sql_id];
+        $litros = ((float) $truck_row[sql_cantidad]) * $porcentaje / 10;
+        $update = self::query($db,
+            "UPDATE " . sql_tabla_almacenamiento_centro . " SET " . sql_volumen_actual . " = " . sql_volumen_actual . " + ? WHERE " . sql_id . " = ? AND " . sql_id_centro . " = ?",
+            "Transferir {$litros} litros al almacenamiento {$id_destino}",
+            "dii",
+            [$litros, $id_destino, $id_centro]
+        );
+        if (!$update->success || $update->affected_rows !== 1) {
+            throw new RuntimeException("db");
+        }
+        return "ok";
     }
 
     private static function load_for_update(Util_DbConnection $db, int $id): ?array

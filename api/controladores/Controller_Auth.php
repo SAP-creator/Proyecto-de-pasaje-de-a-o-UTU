@@ -6,7 +6,6 @@ include_once __DIR__ . "/../modelo/Model_Log.php";
 include_once __DIR__ . "/../utils/Util_Translator.php";
 
 class Controller_Auth {
-    private const secret_key = "UnViMáMiGe_PaVen_Tip.Emp_huuuuuum";
     private const type_log = "AUTH CONTROLLER";
     private const SYS_NAME = "ApiAdminSys";
 
@@ -28,7 +27,7 @@ class Controller_Auth {
             json_completeuser => $data_user[json_completeuser] ?? false
         ];
 
-        $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
+        $signature = hash_hmac("sha256", json_encode($token_data), self::token_signing_secret());
 
         $token = [
             json_token => [
@@ -62,7 +61,7 @@ class Controller_Auth {
             json_completeuser => $data_user[json_completeuser]
         ];
 
-        $signature = hash_hmac("sha256", json_encode($token_data), self::secret_key);
+        $signature = hash_hmac("sha256", json_encode($token_data), self::token_signing_secret());
         $token_sig = (string) ($token[json_token][json_token_sig] ?? "");
         $is_valid = hash_equals($signature, $token_sig);
 
@@ -78,6 +77,16 @@ class Controller_Auth {
     // Unicos campos que un token puede llegar a tener. Si falta alguno, o si
     // aparece cualquier campo extra, el token se considera invalido.
     private const CAMPOS_TOKEN_PERMITIDOS = [json_ci, json_typeuser, json_completeuser];
+
+    private static function token_signing_secret(): string
+    {
+        $secret = getenv("TOKEN_SIGNING_SECRET");
+        if (!is_string($secret) || $secret === "") {
+            throw new RuntimeException("TOKEN_SIGNING_SECRET is not configured");
+        }
+
+        return $secret;
+    }
 
     private static function comprobate_required_data(array $user): bool 
     {

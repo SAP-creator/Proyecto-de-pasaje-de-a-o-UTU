@@ -72,10 +72,8 @@ class Util_VerifyData
     public static function verify_and_get_int(array $list, string $key, int $min = 1, int $max = PHP_INT_MAX): int
     {
         self::keys_exists(true, $list, $key);
-
-        $value = filter_var($list[$key], FILTER_VALIDATE_INT, ['options' => ['min_range' => $min, 'max_range' => $max]]);
-
-        if ($value === false) {
+        $value = self::valid_int($list[$key], $min, $max);
+        if ($value === null) {
             Util_HttpResponse::error(
                 Util_Code::create(StatusCode::ERROR, LayerCode::UTIL, self::SYS_NAME, "InvalidInteger"),
                 http_unprocessable_entity,
@@ -85,6 +83,26 @@ class Util_VerifyData
         }
 
         return $value;
+    }
+
+    /** Devuelve un entero validado o null; no genera respuesta ni corta el controlador. */
+    public static function valid_int(mixed $value, int $min = PHP_INT_MIN, int $max = PHP_INT_MAX): ?int
+    {
+        $parsed = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => $min, 'max_range' => $max]]);
+        return $parsed === false ? null : $parsed;
+    }
+
+    /** Devuelve un número decimal validado o null. */
+    public static function valid_float(mixed $value): ?float
+    {
+        $parsed = filter_var($value, FILTER_VALIDATE_FLOAT);
+        return $parsed === false ? null : (float) $parsed;
+    }
+
+    /** Devuelve true/false si es una representación booleana reconocida; null si no lo es. */
+    public static function valid_boolean(mixed $value): ?bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
     }
 
     public static function valid_json(mixed $str, bool $die = true): ?array 
@@ -135,15 +153,21 @@ class Util_VerifyData
     /**
      * Valida una fecha completa con formato Y-m-d H:i:s (de año a segundos).
      */
-    public static function valid_date(mixed $value): bool
+    public static function valid_date(mixed $value, string $format = 'Y-m-d H:i:s'): bool
     {
         if (!is_string($value)) {
             return false;
         }
 
-        $date = DateTime::createFromFormat('Y-m-d H:i:s', $value);
+        $date = DateTime::createFromFormat($format, $value);
 
-        return $date !== false && $date->format('Y-m-d H:i:s') === $value;
+        return $date !== false && $date->format(str_replace('!', '', $format)) === $value;
+    }
+
+    /** Valida formatos como H:i:s usando el mismo criterio estricto de fecha. */
+    public static function valid_time(mixed $value): bool
+    {
+        return self::valid_date($value, '!H:i:s');
     }
 
     /**
