@@ -4,25 +4,29 @@ set -eu
 while true; do
     checked=0
 
-    for archive in /backups/database/*.sql.gz; do
-        [ -f "${archive}" ] || continue
+    database_archives=$(find /backups/database -type f -name '*.sql.gz' -print)
+    if [ -n "$database_archives" ]; then
         checked=1
-        if gzip -t "${archive}"; then
-            echo "[$(date -u)] OK: ${archive}"
-        else
-            echo "[$(date -u)] ERROR: respaldo de base inválido: ${archive}" >&2
-        fi
-    done
+        printf '%s\n' "$database_archives" | while IFS= read -r archive; do
+            if gzip -t "${archive}"; then
+                echo "[$(date -u)] OK: ${archive}"
+            else
+                echo "[$(date -u)] ERROR: respaldo de base inválido: ${archive}" >&2
+            fi
+        done
+    fi
 
-    for archive in /backups/project/*.tar.gz; do
-        [ -f "${archive}" ] || continue
+    project_archives=$(find /backups/project -type f -name '*.tar.gz' -print)
+    if [ -n "$project_archives" ]; then
         checked=1
-        if tar -tzf "${archive}" >/dev/null; then
-            echo "[$(date -u)] OK: ${archive}"
-        else
-            echo "[$(date -u)] ERROR: respaldo de archivos inválido: ${archive}" >&2
-        fi
-    done
+        printf '%s\n' "$project_archives" | while IFS= read -r archive; do
+            if tar -tzf "${archive}" >/dev/null; then
+                echo "[$(date -u)] OK: ${archive}"
+            else
+                echo "[$(date -u)] ERROR: respaldo de archivos inválido: ${archive}" >&2
+            fi
+        done
+    fi
 
     if [ "${checked}" -eq 0 ]; then
         echo "[$(date -u)] Aún no hay respaldos para verificar"
