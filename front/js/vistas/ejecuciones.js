@@ -3,8 +3,7 @@
   Ejecuciones: una salida concreta de un trayecto en una fecha, con un camión y un operario.
 
   Quién hace qué:
-    AP (admin general):  aprobar y rechazar
-    AO (admin operador): también aprueba, además de pausar y cancelar
+    AO (admin operador): aprobar y rechazar
     O  (operador):       iniciar, pausar, reanudar, terminar y cancelar; al iniciar o reanudar
                          se abre la pantalla de ruta (modo-ruta.js)
   Estados: aprobada -> en_curso -> pausada <-> en_curso -> finalizada
@@ -15,7 +14,7 @@ function crearVistaEjecuciones(seccion) {
   const zonaTabla = crearElemento('div', {});
 
   let botonAprobar = null;
-  if (rolActualEs('AP', 'AO')) {
+  if (rolActualEs('AO')) {
     botonAprobar = crearBoton('a.aprobar', abrirFormularioDeAprobacion, 'btn pri');
   }
   seccion.append(crearTituloDeSeccion('tab.ejecuciones', botonAprobar));
@@ -24,7 +23,7 @@ function crearVistaEjecuciones(seccion) {
 
   filtroEstado.addEventListener('change', cargarEjecuciones);
 
-  // Aprobar una ejecución nueva (admin general y admin operador).
+  // Aprobar una ejecución nueva (solo admin operador).
   async function abrirFormularioDeAprobacion() {
     const trayectos = await pedirLista('/trayecto');
     const camiones = await pedirLista('/camion');
@@ -123,17 +122,27 @@ function crearVistaEjecuciones(seccion) {
     });
   }
 
-  function abrirFormularioDeTerminar(ejecucion) {
+  async function abrirFormularioDeTerminar(ejecucion) {
+    const destino = await datosDeDestinoDeEjecucion(ejecucion.ID);
+    const posibles = destino === null ? [] : destino.seleccionados;
+    const campos = [
+      { nombre: 'LLENADO_CAMION', etiqueta: 'k.LLENADO_CAMION', tipo: 'numero', min: 0, max: 10, obligatorio: true, ayuda: 'hint.llenadoCamion' }
+    ];
+    if (posibles.length > 1) {
+      campos.push({
+        nombre: 'ID_ALMACENAMIENTO', etiqueta: 'k.ID_ALMACENAMIENTO', tipo: 'select', obligatorio: true,
+        opciones: posibles.map(function (a) {
+          return { valor: a.ID, texto: '#' + a.ID + ' · ' + convertirALista(a.TIPO_BASURAS).join(', ') + ' · ' + (a.VOLUMEN_ACTUAL || 0) + '/' + a.CANTIDAD + ' L' };
+        })
+      });
+    }
     abrirFormulario({
       titulo: traducir('a.terminar'),
-      campos: [
-        { nombre: 'LLENADO_CAMION', etiqueta: 'k.LLENADO_CAMION', tipo: 'numero', min: LLENADO_MINIMO, max: LLENADO_MAXIMO, ayuda: 'hint.llenado' }
-      ],
+      campos: campos,
       enviar: function (valores) {
-        const extra = {};
-        if (valores.LLENADO_CAMION !== undefined) {
-          extra.LLENADO_CAMION = Number(valores.LLENADO_CAMION);
-        }
+        const extra = { LLENADO_CAMION: Number(valores.LLENADO_CAMION) };
+        if (posibles.length === 1) { extra.ID_ALMACENAMIENTO = Number(posibles[0].ID); }
+        if (valores.ID_ALMACENAMIENTO !== undefined) { extra.ID_ALMACENAMIENTO = Number(valores.ID_ALMACENAMIENTO); }
         return enviarAccion('terminar', ejecucion, extra);
       },
       alTerminar: cargarEjecuciones
@@ -158,7 +167,7 @@ function crearVistaEjecuciones(seccion) {
     if (rolActualEs('O') && estado === 'pausada') {
       botones.push(crearBoton('a.reanudar', function () { ejecutarAccionDirecta('reanudar', ejecucion); }));
     }
-    if (rolActualEs('O', 'AO') && estado === 'en_curso') {
+    if (rolActualEs('O') && estado === 'en_curso') {
       botones.push(crearBoton('a.pausar', function () { ejecutarAccionDirecta('pausar', ejecucion); }));
     }
     if (rolActualEs('O') && (estado === 'en_curso' || estado === 'pausada')) {
@@ -166,10 +175,10 @@ function crearVistaEjecuciones(seccion) {
     }
 
     const estaAbierta = estado === 'aprobada' || estado === 'en_curso' || estado === 'pausada';
-    if (rolActualEs('O', 'AO') && estaAbierta) {
+    if (rolActualEs('O') && estaAbierta) {
       botones.push(crearBoton('a.cancelar', function () { abrirFormularioConNotas('cancelar', 'a.cancelar', ejecucion); }, 'danger'));
     }
-    if (rolActualEs('AP') && estado === 'aprobada') {
+    if (rolActualEs('AO') && estado === 'aprobada') {
       botones.push(crearBoton('a.rechazar', function () { abrirFormularioConNotas('rechazar', 'a.rechazar', ejecucion); }, 'danger'));
     }
     return botones;
@@ -192,7 +201,7 @@ function crearVistaEjecuciones(seccion) {
     { titulo: 'k.FECHA_PROGRAMADA', valor: function (e) { return e.FECHA_PROGRAMADA; } },
     { titulo: 'k.ESTADO_EJECUCION', valor: crearEtiquetaDeEstado },
     { titulo: 'k.CEDULA_OPERARIO', valor: function (e) { return e.CEDULA_OPERARIO; } },
-    { titulo: 'k.ID_CAMION', valor: function (e) { return '#' + e.ID_CAMION; } }
+    { titulo: 'k.ID_CAMION', valor: function (e) { return e.ID_CAMION ? '#' + e.ID_CAMION : '—'; } }
   ];
 
   async function cargarEjecuciones() {

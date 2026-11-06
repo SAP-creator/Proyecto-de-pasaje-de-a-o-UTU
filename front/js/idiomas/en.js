@@ -8,7 +8,7 @@ const TEXTOS_EN = {
 
   // Generales
   "company": "Company logo",
-  "footer": "SGeR · Property of Your Company. All rights reserved. Use of this system is subject to the terms of service, the privacy policy and applicable law.",
+  "footer": "SGeR · Property of SAP&E. All rights reserved. Use of this system is subject to the terms of service, the privacy policy and applicable law.",
   "lang": "Language",
   "close": "Close",
   "confirm": "Confirm",
@@ -58,14 +58,12 @@ const TEXTOS_EN = {
   // Página principal
   "home.title": "SGeR waste collection plan",
   "home.lead": "We coordinate waste collection in your area efficiently, reducing environmental impact and improving quality of life in your neighborhood.",
-  "home.s1": "Service news: collection updates and how the plan is performing.",
   "home.s2": "We support a greener future: every well-managed container counts.",
   "home.s3": "A cleaner city, with planned routes and monitored containers.",
-  "home.video": "Space for the garbage truck video",
-  "home.work": "Our work matters: it keeps neighborhoods clean and reduces environmental impact.",
-  "home.gif1": "GIF: crews at work",
-  "home.gif2": "GIF: truck driving through the city",
-  "home.join": "Be part of the project: help us report incidents.",
+  "home.work.title": "Our work matters",
+  "home.work.text": "It keeps neighborhoods clean and reduces environmental impact",
+  "home.work.alt": "Waste collection trucks parked at night",
+  "home.join": "Be part of our project: help us report incidents",
 
   // Ingreso y registro
   "login.back": "Back to home",
@@ -104,6 +102,9 @@ const TEXTOS_EN = {
   "a.opciones": "Options",
   "a.aceptar": "Accept",
   "a.retirar": "Withdraw",
+    "a.ajustar": "Adjust volume",
+    "a.activar": "Set in service",
+    "a.desactivar": "Take out of service",
   "a.retiros": "View withdrawals",
   "a.vermapa": "Show on map",
   "a.aprobar": "Approve execution",
@@ -120,12 +121,18 @@ const TEXTOS_EN = {
   "ruta.anterior": "Previous",
   "ruta.siguiente": "Next",
   "ruta.proxima": "Next stop",
+  "ruta.vaciado": "Container emptied in this execution",
   "ruta.otras": "Other points",
   "ruta.yo": "Your position",
   "ruta.centrar": "My position",
   "ruta.vertodo": "Show whole route",
   "ruta.nogps": "Could not get your position. Check the browser location permission (a real site needs https).",
   "ruta.sinparadas": "The route has no stops with a valid location.",
+
+  // Etiquetas de los puntos de una ruta en el mapa: "Start", "C1", "C2"..., "Finish"
+  "ruta.salida": "Start",
+  "ruta.llegada": "Finish",
+  "ruta.c": "C",
 
   // Preguntas de confirmación
   "q.borrar": "Are you sure you want to delete it? This cannot be undone.",
@@ -134,6 +141,7 @@ const TEXTOS_EN = {
   // Ayudas bajo los campos
   "hint.fecha": "Optional. Format YYYY-MM-DD HH:MM:SS; if empty, the current date is used.",
   "hint.llenado": "From 0 (empty) to 11 (overfilled).",
+    "hint.llenadoCamion": "Truck load percentage, from 0 to 10. That proportion of its capacity will be added to the final center.",
   "hint.litros": "In liters.",
   "hint.retiro": "Leave empty to withdraw everything.",
   "hint.diaofecha": "Set either a weekday or a special date, not both.",
@@ -202,7 +210,7 @@ const TEXTOS_EN = {
   "k.ID_CAMION": "Truck",
   "k.CEDULA_OPERARIO": "Driver ID",
   "k.NOTAS": "Notes",
-  "k.LLENADO_CAMION": "Truck fill level",
+  "k.LLENADO_CAMION": "Truck load percentage",
   "k.ESTADO_EJECUCION": "Status",
   "k.TYPELOG": "Type",
   "k.TEXTO": "Information",
@@ -250,6 +258,7 @@ const TEXTOS_EN = {
   "e.Pendiente": "Pending",
   "e.En proceso": "In progress",
   "e.Resuelto": "Resolved",
+  "e.Terminado": "Completed",
   "e.disponible": "Available",
   "e.no disponible": "Unavailable",
   "e.en trayecto": "On a trip",

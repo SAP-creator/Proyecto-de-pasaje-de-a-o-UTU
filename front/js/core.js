@@ -1,14 +1,14 @@
 /* core.js — DOM, sesión, cliente de API, modales, formularios y tablas. */
 const CONFIG = {
   ...SGER_CONFIG,
-  ROLES: { 'vecino': '/user/vecino', 'operador camion': '/user/operador', 'admin operador': '/user/adminoperador', 'admin general': '/user/admingeneral', 'admin sistema': '/user/adminsys' },
+  ROLES: { 'vecino': '/user/vecino', 'operador camion': '/user/operador', 'admin operador': '/user/adminoperador', 'admin general': '/user/planificador', 'admin sistema': '/user/adminsys' },
   BASURAS: ['Plástico', 'Vidrio', 'Papel y cartón', 'Metales', 'Biodegradable'],
   CONDICIONES: ['Normal', 'Vandalizado', 'Roto', 'Quemado', 'Reparacion'],
   BASURA_EST: ['Basura_afuera', 'Limpio'],
   DIAS: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'],
   CAMION_EST: ['disponible', 'no disponible', 'en trayecto'],
   INC_TIPOS: ['Grave', 'Moderado', 'Leve'],
-  INC_EST: ['Pendiente', 'En proceso', 'Resuelto'],
+  INC_EST: ['Pendiente', 'En proceso', 'Terminado'],
   EJ_EST: ['aprobada', 'en_curso', 'pausada', 'finalizada', 'cancelada', 'rechazada', 'vencida'],
   TIPOS_USUARIO: ['vecino', 'operador camion', 'admin operador', 'admin general', 'admin sistema']
 };

@@ -32,7 +32,7 @@ const PESTANAS_POR_ROL = {
   'vecino': ['mapa', 'datos', 'contenedores', 'incidentes', 'rutas'],
   'operador camion': ['mapa', 'datos', 'ejecuciones', 'contenedores', 'incidentes', 'centros', 'rutas', 'camiones', 'trayectos'],
   'admin operador': ['mapa', 'datos', 'contenedores', 'incidentes', 'centros', 'camiones', 'trayectos', 'ejecuciones', 'rutas'],
-  'admin general': ['mapa', 'datos', 'contenedores', 'centros', 'rutas', 'incidentes', 'camiones', 'trayectos', 'ejecuciones'],
+  'admin general': ['mapa', 'datos', 'contenedores', 'centros', 'rutas', 'incidentes', 'camiones', 'trayectos'],
   'admin sistema': ['mapa', 'datos', 'usuarios', 'solicitudes', 'logs', 'contenedores', 'incidentes', 'rutas']
 };
 

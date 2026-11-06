@@ -8,7 +8,7 @@ const TEXTOS_ES = {
 
   // Generales
   "company": "Logo de la empresa",
-  "footer": "SGeR · Propiedad de Tu empresa. Todos los derechos reservados. El uso del sistema está sujeto a los términos de servicio, la política de privacidad y la normativa vigente.",
+  "footer": "SGeR · Propiedad de SAP&E. Todos los derechos reservados. El uso de este sistema está sujeto a los términos del servicio, a la política de privacidad y a la legislación vigente.",
   "lang": "Idioma",
   "close": "Cerrar",
   "confirm": "Confirmar",
@@ -58,14 +58,12 @@ const TEXTOS_ES = {
   // Página principal
   "home.title": "Plan SGeR de recolección de residuos",
   "home.lead": "Coordinamos la recolección de residuos en tu zona de forma eficiente, reduciendo el impacto ambiental y mejorando la calidad de vida del barrio.",
-  "home.s1": "Noticias del servicio: novedades de la recolección y cómo está funcionando el plan.",
   "home.s2": "Apoyamos un futuro más verde: cada contenedor bien gestionado cuenta.",
   "home.s3": "Tu ciudad más limpia, con rutas planificadas y contenedores monitoreados.",
-  "home.video": "Espacio para el video del camión de basura en acción",
-  "home.work": "Nuestro trabajo es importante: mantiene limpios los barrios y reduce el impacto ambiental.",
-  "home.gif1": "GIF: trabajadores en acción",
-  "home.gif2": "GIF: camión recorriendo la ciudad",
-  "home.join": "Sé parte del proyecto: ayudanos a reportar incidencias.",
+  "home.work.title": "Nuestro trabajo importa",
+  "home.work.text": "Mantiene los vecindarios limpios y reduce el impacto ambiental",
+  "home.work.alt": "Camiones de recolección de residuos estacionados de noche",
+  "home.join": "Sé parte de nuestro proyecto: ayudanos a reportar incidentes",
 
   // Ingreso y registro
   "login.back": "Volver al inicio",
@@ -104,6 +102,9 @@ const TEXTOS_ES = {
   "a.opciones": "Opciones",
   "a.aceptar": "Aceptar",
   "a.retirar": "Retirar",
+  "a.ajustar": "Ajustar volumen",
+  "a.activar": "Poner en función",
+  "a.desactivar": "Sacar de función",
   "a.retiros": "Ver retiros",
   "a.vermapa": "Ver en el mapa",
   "a.aprobar": "Aprobar ejecución",
@@ -120,12 +121,18 @@ const TEXTOS_ES = {
   "ruta.anterior": "Anterior",
   "ruta.siguiente": "Siguiente",
   "ruta.proxima": "Próxima parada",
+  "ruta.vaciado": "Contenedor vaciado en esta ejecución",
   "ruta.otras": "Otros puntos",
   "ruta.yo": "Tu posición",
   "ruta.centrar": "Mi posición",
   "ruta.vertodo": "Ver toda la ruta",
   "ruta.nogps": "No se pudo obtener tu posición. Revisá el permiso de ubicación del navegador (en un sitio real hace falta https).",
   "ruta.sinparadas": "La ruta no tiene paradas con ubicación válida.",
+
+  // Etiquetas de los puntos de una ruta en el mapa: "Salida", "C1", "C2"..., "Llegada"
+  "ruta.salida": "Salida",
+  "ruta.llegada": "Llegada",
+  "ruta.c": "C",
 
   // Preguntas de confirmación
   "q.borrar": "¿Seguro que querés borrarlo? No se puede deshacer.",
@@ -134,6 +141,7 @@ const TEXTOS_ES = {
   // Ayudas bajo los campos
   "hint.fecha": "Opcional. Formato AAAA-MM-DD HH:MM:SS; si lo dejás vacío se usa la fecha actual.",
   "hint.llenado": "De 0 (vacío) a 11 (sobrellenado).",
+    "hint.llenadoCamion": "Porcentaje de carga del camión, de 0 a 10. Se sumará esa proporción de su capacidad al centro final.",
   "hint.litros": "En litros.",
   "hint.retiro": "Si lo dejás vacío se retira todo lo que hay.",
   "hint.diaofecha": "Indicá un día de la semana o una fecha especial, no ambos.",
@@ -202,7 +210,7 @@ const TEXTOS_ES = {
   "k.ID_CAMION": "Camión",
   "k.CEDULA_OPERARIO": "Cédula del operario",
   "k.NOTAS": "Notas",
-  "k.LLENADO_CAMION": "Llenado del camión",
+  "k.LLENADO_CAMION": "Porcentaje de carga del camión",
   "k.ESTADO_EJECUCION": "Estado",
   "k.TYPELOG": "Tipo",
   "k.TEXTO": "Información",
@@ -250,6 +258,7 @@ const TEXTOS_ES = {
   "e.Pendiente": "Pendiente",
   "e.En proceso": "En proceso",
   "e.Resuelto": "Resuelto",
+  "e.Terminado": "Terminado",
   "e.disponible": "Disponible",
   "e.no disponible": "No disponible",
   "e.en trayecto": "En trayecto",

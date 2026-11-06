@@ -9,7 +9,7 @@ const PREFIJO_API_POR_ROL = {
   'vecino': '/user/vecino',
   'operador camion': '/user/operador',
   'admin operador': '/user/adminoperador',
-  'admin general': '/user/admingeneral',
+  'admin general': '/user/planificador',
   'admin sistema': '/user/adminsys'
 };
 
@@ -20,7 +20,7 @@ const CONDICIONES_CONTENEDOR = ['Normal', 'Vandalizado', 'Roto', 'Quemado', 'Rep
 const ESTADOS_BASURA_CONTENEDOR = ['Basura_afuera', 'Limpio'];
 
 const GRAVEDADES_INCIDENTE = ['Grave', 'Moderado', 'Leve'];
-const ESTADOS_INCIDENTE = ['Pendiente', 'En proceso', 'Resuelto'];
+const ESTADOS_INCIDENTE = ['Pendiente', 'En proceso', 'Terminado'];
 
 const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 const ESTADOS_CAMION = ['disponible', 'no disponible', 'en trayecto'];

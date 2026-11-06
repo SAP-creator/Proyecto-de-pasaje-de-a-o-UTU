@@ -5,6 +5,7 @@
   Se abre sola al iniciar o reanudar una ejecución, y con el botón "Abrir ruta" de la tabla.
   Muestra a pantalla completa:
     - El mapa con todos los contenedores (círculos) y centros de acopio (cuadrados).
+    - Cada punto de la ruta con una etiqueta fija: "Salida · Centro #X", "C1 · #ID"..., "Llegada · Centro #Y".
     - La próxima parada resaltada con un color (colores.proxima); el resto, de otro (colores.otras).
     - La posición actual del camión por GPS (punto azul), si el navegador lo permite.
       Ojo: el GPS del navegador solo funciona en https:// o en localhost.
@@ -92,6 +93,7 @@ const ModoRuta = {
     let centros = [];
     let indice = 0;
     let marcadores = [];
+    let etiquetas = [];
     let lineaDeRuta = null;
     let miPosicion = null;
     let marcadorYo = null;
@@ -194,17 +196,27 @@ const ModoRuta = {
       }
     }
 
-    function abrirFormularioDeTerminar() {
+    async function abrirFormularioDeTerminar() {
+      const destino = await datosDeDestinoDeEjecucion(idEjecucion);
+      const posibles = destino === null ? [] : destino.seleccionados;
+      const campos = [
+        { nombre: 'LLENADO_CAMION', etiqueta: 'k.LLENADO_CAMION', tipo: 'numero', min: 0, max: 10, obligatorio: true, ayuda: 'hint.llenadoCamion' }
+      ];
+      if (posibles.length > 1) {
+        campos.push({
+          nombre: 'ID_ALMACENAMIENTO', etiqueta: 'k.ID_ALMACENAMIENTO', tipo: 'select', obligatorio: true,
+          opciones: posibles.map(function (a) {
+            return { valor: a.ID, texto: '#' + a.ID + ' · ' + convertirALista(a.TIPO_BASURAS).join(', ') + ' · ' + (a.VOLUMEN_ACTUAL || 0) + '/' + a.CANTIDAD + ' L' };
+          })
+        });
+      }
       abrirFormulario({
         titulo: traducir('a.terminar'),
-        campos: [
-          { nombre: 'LLENADO_CAMION', etiqueta: 'k.LLENADO_CAMION', tipo: 'numero', min: LLENADO_MINIMO, max: LLENADO_MAXIMO, ayuda: 'hint.llenado' }
-        ],
+        campos: campos,
         enviar: function (valores) {
-          const extra = {};
-          if (valores.LLENADO_CAMION !== undefined) {
-            extra.LLENADO_CAMION = Number(valores.LLENADO_CAMION);
-          }
+          const extra = { LLENADO_CAMION: Number(valores.LLENADO_CAMION) };
+          if (posibles.length === 1) { extra.ID_ALMACENAMIENTO = Number(posibles[0].ID); }
+          if (valores.ID_ALMACENAMIENTO !== undefined) { extra.ID_ALMACENAMIENTO = Number(valores.ID_ALMACENAMIENTO); }
           return enviarAccion('terminar', extra);
         },
         alTerminar: cerrar
@@ -222,7 +234,9 @@ const ModoRuta = {
       return null;
     }
 
-    function agregarParada(tipo, id, lista) {
+    // Agrega una parada a la lista. "extra" trae el rol ('salida', 'contenedor', 'llegada')
+    // y, para los contenedores, su número en la ruta (C1, C2...). Se usan para las etiquetas del mapa.
+    function agregarParada(tipo, id, lista, extra) {
       const datos = buscarPorId(lista, id);
       if (datos === null) {
         return;
@@ -231,7 +245,7 @@ const ModoRuta = {
       if (posicion === null) {
         return;
       }
-      paradas.push({ tipo: tipo, id: datos.ID, pos: posicion, datos: datos });
+      paradas.push(Object.assign({ tipo: tipo, id: datos.ID, pos: posicion, datos: datos }, extra));
     }
 
     // Busca la ruta de la ejecución (directo, o a través de su trayecto) y arma la lista de paradas.
@@ -270,15 +284,25 @@ const ModoRuta = {
       centros = await pedirLista('/centro');
 
       paradas = [];
-      agregarParada('centro', ruta.ID_CENTRO_INICIO, centros);
+      agregarParada('centro', ruta.ID_CENTRO_INICIO, centros, { rol: 'salida' });
+      const contenedoresYaVaciados = new Set(convertirALista(ejecucion.CONTENEDORES)
+        .filter(function (item) { return esVerdadero(item.VACIADO); })
+        .map(function (item) { return String(item.ID_CONTENEDOR); }));
+      // El número (C1, C2...) es el lugar del contenedor en la ruta, aunque alguno no tenga ubicación.
+      let numero = 0;
       for (const elemento of convertirALista(ruta.CONTENEDORES)) {
         let idContenedor = elemento;
         if (typeof elemento === 'object' && elemento !== null) {
           idContenedor = elemento.ID_CONTENEDOR !== undefined ? elemento.ID_CONTENEDOR : elemento.ID;
         }
-        agregarParada('contenedor', idContenedor, contenedores);
+        numero += 1;
+        const cantidadAntes = paradas.length;
+        agregarParada('contenedor', idContenedor, contenedores, { rol: 'contenedor', numero: numero });
+        if (paradas.length > cantidadAntes) {
+          paradas[paradas.length - 1].vaciado = contenedoresYaVaciados.has(String(idContenedor));
+        }
       }
-      agregarParada('centro', ruta.ID_CENTRO_FINAL, centros);
+      agregarParada('centro', ruta.ID_CENTRO_FINAL, centros, { rol: 'llegada' });
     }
 
     // Vuelve a pedir los contenedores (por ejemplo, después de informar un llenado).
@@ -337,11 +361,16 @@ const ModoRuta = {
     }
 
     // Borra y vuelve a dibujar todos los marcadores: la próxima parada con su color y los demás con el otro.
+    // También redibuja las etiquetas de la ruta (la de la próxima parada va resaltada).
     function dibujarMapa() {
       for (const marcador of marcadores) {
         marcador.remove();
       }
       marcadores = [];
+      for (const etiqueta of etiquetas) {
+        etiqueta.remove();
+      }
+      etiquetas = [];
 
       // Puntos que no son parte de la ruta (también se muestran, con el color común).
       const enLaRuta = {};
@@ -374,6 +403,9 @@ const ModoRuta = {
       // La próxima parada se dibuja al final para que quede arriba de todo.
       const proxima = paradas[indice];
       marcadores.push(crearMarcadorDeParada(proxima.pos, proxima.tipo === 'centro', colores.proxima, true, tituloDeParada(proxima.tipo, proxima.id)));
+
+      // Etiquetas fijas: Salida, C1, C2..., Llegada.
+      etiquetas = Mapas.dibujarEtiquetasDeRuta(mapa, paradas, indice);
     }
 
     function ajustarATodaLaRuta() {
@@ -472,8 +504,9 @@ const ModoRuta = {
     function crearBotonesDeContenedor(parada) {
       const id = parada.id;
       const botonVaciar = crearBoton('a.vaciar', async function () {
-        const resultado = await AccionesContenedor.registrarVaciado(id);
+        const resultado = await AccionesContenedor.registrarVaciado(id, idEjecucion);
         if (resultado !== null && resultado !== undefined && resultado.exito) {
+          parada.vaciado = true;
           await recargarContenedores();
           // Con el contenedor vaciado, la próxima parada pasa a la siguiente.
           irA(indice + 1);
@@ -481,11 +514,11 @@ const ModoRuta = {
       }, 'btn pri');
 
       return crearElemento('div', { clase: 'ruta-acc' },
-        botonVaciar,
+        parada.vaciado ? crearElemento('span', { clase: 'tag off', texto: traducir('ruta.vaciado') }) : botonVaciar,
         crearBoton('a.llenado', function () { AccionesContenedor.informarLlenado(id, recargarContenedores); }, 'btn'),
         crearBoton('a.estado', function () { AccionesContenedor.reportarEstado(id, recargarContenedores); }, 'btn'),
         crearBoton('a.incidente', function () { AccionesContenedor.reportarIncidente(id, recargarContenedores); }, 'btn'),
-        crearBoton('a.detalle', function () { AccionesContenedor.abrirDetalle(id); }, 'btn')
+        crearBoton('a.detalle', function () { AccionesContenedor.abrirDetalle(id, idEjecucion); }, 'btn')
       );
     }
 
@@ -502,7 +535,8 @@ const ModoRuta = {
         textoDistancia
       ));
 
-      contenido.push(crearElemento('strong', { texto: tituloDeParada(parada.tipo, parada.id) }));
+      // Mismo nombre que la etiqueta del mapa: "C3 · Contenedor #12", "Salida · Centro #1".
+      contenido.push(crearElemento('strong', { texto: Mapas.nombreCortoDeParada(parada) + ' · ' + tituloDeParada(parada.tipo, parada.id) }));
       contenido.push(crearElemento('div', { texto: parada.datos.UBICACION || '' }));
 
       if (esContenedor) {
@@ -573,6 +607,10 @@ const ModoRuta = {
     } else if (paradas.length > 1 && paradas[0].tipo === 'centro') {
       indice = 1;
     }
+    while (indice < paradas.length && paradas[indice].tipo === 'contenedor' && paradas[indice].vaciado) {
+      indice += 1;
+    }
+    if (indice >= paradas.length) { indice = paradas.length - 1; }
 
     mapa = Mapas.crear(cajaDelMapa, CONFIGURACION.CENTRO_DEL_MAPA, CONFIGURACION.ZOOM_DEL_MAPA);
     const puntosDeLaRuta = [];

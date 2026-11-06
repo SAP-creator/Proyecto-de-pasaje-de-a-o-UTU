@@ -7,7 +7,7 @@ const Encabezado = {
 
   // Los dos logos (empresa y SGeR) juntos, arriba a la izquierda. Llevan a la página principal.
   crearLogos: function () {
-    const logoEmpresa = crearElemento('img', { src: RAIZ + 'assets/logo-empresa.svg', alt: traducir('company') });
+    const logoEmpresa = crearElemento('img', { src: RAIZ + 'assets/logo-sape.png', alt: 'SAP&E', clase: 'logo-empresa' });
     const separador = crearElemento('span', { clase: 'brand-sep' });
     const logoPrograma = crearElemento('img', { src: RAIZ + 'assets/logo-sger.svg', alt: 'SGeR' });
 
