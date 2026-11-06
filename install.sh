@@ -33,8 +33,9 @@ Sin argumentos abre el menú interactivo para:
   - desinstalar los contenedores, conservando los datos por defecto.
     - usar las opciones avanzadas de Docker desde docker-admin-avanzado.sh.
 
-La opción Instalar pide una ruta de paquete. ENTER busca automáticamente
-sigeru-docker-*.tar.gz en ../../ respecto a este script.
+La opción Instalar acepta el paquete sigeru-docker-*.tar.gz, la carpeta sigeru/
+ya descomprimida o su images.tar. ENTER usa la carpeta de este script si ya está
+descomprimida; si no, busca sigeru-docker-*.tar.gz en ../../ respecto a este script.
 HELP
 }
 
@@ -266,13 +267,59 @@ ofrecer_admin_prueba() {
     crear_admin_prueba || info 'Se puede reintentar con la opción 11 del menú.'
 }
 
-instalar_desde_paquete() {
-    local archive temp version destination env_file bundle_dir port respuesta previo
-    [[ "$EUID" -eq 0 ]] || { fail "Para instalar, abra el menú con sudo: sudo bash install.sh"; return 1; }
+# Una carpeta sirve como paquete si ya está descomprimida: compose.yaml + images.tar + release-version.txt.
+bundle_valido() {
+    local dir="$1"
+    [[ -f "$dir/compose.yaml" && -f "$dir/images.tar" && -f "$dir/release-version.txt" ]]
+}
 
-    read -r -p "Ruta del paquete .tar.gz (ENTER = buscar automáticamente en ../../): " archive
-    archive="$(buscar_paquete "$archive")" || return 1
+es_gzip() {
+    [[ "$(head -c 2 -- "$1" 2>/dev/null | od -An -tx1 | tr -d ' \n')" == "1f8b" ]]
+}
+
+# Decide de dónde salen las imágenes. Acepta:
+#   - ENTER: la carpeta de este script si ya está descomprimida; si no, busca el .tar.gz;
+#   - el paquete sigeru-docker-*.tar.gz;
+#   - la carpeta descomprimida (la que tiene images.tar);
+#   - el archivo images.tar (se usa la carpeta donde está).
+# Deja el resultado en BUNDLE_DIR. Si hubo que descomprimir, TEMP_DIR es la carpeta temporal.
+resolver_origen() {
+    local entrada="$1" archive
+    BUNDLE_DIR=''
+    TEMP_DIR=''
+
+    if [[ -z "$entrada" ]] && bundle_valido "$SCRIPT_DIR"; then
+        BUNDLE_DIR="$SCRIPT_DIR"
+        info "Se usa el paquete ya descomprimido en $SCRIPT_DIR."
+        return 0
+    fi
+
+    if [[ -n "$entrada" && -d "$entrada" ]]; then
+        if bundle_valido "$entrada"; then
+            BUNDLE_DIR="$(cd -- "$entrada" && pwd -P)"
+            return 0
+        fi
+        if bundle_valido "$entrada/sigeru"; then
+            BUNDLE_DIR="$(cd -- "$entrada/sigeru" && pwd -P)"
+            return 0
+        fi
+    fi
+
+    if [[ -n "$entrada" && -f "$entrada" ]] && ! es_gzip "$entrada"; then
+        # Es un .tar sin comprimir: tiene que ser images.tar dentro de la carpeta del paquete.
+        local carpeta
+        carpeta="$(cd -- "$(dirname -- "$entrada")" && pwd -P)"
+        [[ "$(basename -- "$entrada")" == "images.tar" ]] && bundle_valido "$carpeta" || {
+            fail "$entrada no es un paquete .tar.gz. Si es images.tar, tiene que estar junto a compose.yaml y release-version.txt (la carpeta sigeru/ descomprimida)."
+            return 1
+        }
+        BUNDLE_DIR="$carpeta"
+        return 0
+    fi
+
+    archive="$(buscar_paquete "$entrada")" || return 1
     archive="$(cd -- "$(dirname -- "$archive")" && pwd -P)/$(basename -- "$archive")"
+    es_gzip "$archive" || { fail "$archive no es un archivo .tar.gz válido."; return 1; }
 
     if [[ -f "$archive.sha256" ]]; then
         (cd -- "$(dirname -- "$archive")" && sha256sum -c "$(basename -- "$archive").sha256") \
@@ -282,40 +329,61 @@ instalar_desde_paquete() {
     fi
     ruta_segura_tar "$archive" || return 1
 
-    temp="$(mktemp -d)"
-    if ! tar -xzf "$archive" -C "$temp"; then
-        rm -rf "$temp"
+    TEMP_DIR="$(mktemp -d)"
+    if ! tar -xzf "$archive" -C "$TEMP_DIR"; then
+        limpiar_temp
         fail "No se pudo descomprimir el paquete."
         return 1
     fi
-    bundle_dir="$temp/sigeru"
-    if [[ ! -f "$bundle_dir/compose.yaml" || ! -f "$bundle_dir/images.tar" || ! -f "$bundle_dir/release-version.txt" ]]; then
-        rm -rf "$temp"
+    bundle_valido "$TEMP_DIR/sigeru" || {
+        limpiar_temp
         fail "El paquete no contiene compose.yaml, images.tar y release-version.txt."
         return 1
-    fi
+    }
+    BUNDLE_DIR="$TEMP_DIR/sigeru"
+}
+
+limpiar_temp() {
+    [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]] && rm -rf -- "$TEMP_DIR"
+    TEMP_DIR=''
+}
+
+# Copia un archivo del paquete a la instalación, salvo que sea el mismo archivo.
+copiar_si_distinto() {
+    local origen="$1" destino="$2"
+    [[ -e "$destino" && "$origen" -ef "$destino" ]] && return 0
+    cp -- "$origen" "$destino"
+}
+
+instalar_desde_paquete() {
+    local version destination env_file bundle_dir port respuesta previo entrada
+    [[ "$EUID" -eq 0 ]] || { fail "Para instalar, abra el menú con sudo: sudo bash install.sh"; return 1; }
+
+    read -r -p "Paquete .tar.gz, carpeta descomprimida o images.tar (ENTER = automático): " entrada
+    resolver_origen "$entrada" || return 1
+    bundle_dir="$BUNDLE_DIR"
     version="$(<"$bundle_dir/release-version.txt")"
-    [[ "$version" =~ ^[A-Za-z0-9._-]+$ ]] || { rm -rf "$temp"; fail "Versión inválida en el paquete."; return 1; }
+    [[ "$version" =~ ^[A-Za-z0-9._-]+$ ]] || { limpiar_temp; fail "Versión inválida en el paquete."; return 1; }
 
     previo="$INSTALL_DIR"
     read -r -p "Directorio de instalación [$INSTALL_DIR]: " destination
     destination="${destination:-$INSTALL_DIR}"
-    [[ "$destination" == /* && "$destination" != *$'\n'* ]] || { rm -rf "$temp"; fail "La ruta debe ser absoluta."; return 1; }
+    [[ "$destination" == /* && "$destination" != *$'\n'* ]] || { limpiar_temp; fail "La ruta debe ser absoluta."; return 1; }
 
     if ! docker_disponible; then
         read -r -p '¿Intentar instalar Docker automáticamente (Debian/Ubuntu/Fedora)? [s/N]: ' respuesta
         if [[ "$respuesta" =~ ^[sS]$ ]]; then
-            instalar_docker || { rm -rf "$temp"; return 1; }
-            docker_disponible || { rm -rf "$temp"; return 1; }
+            instalar_docker || { limpiar_temp; return 1; }
+            docker_disponible || { limpiar_temp; return 1; }
         else
-            rm -rf "$temp"
+            limpiar_temp
             return 1
         fi
     fi
 
     mkdir -p "$destination"
     env_file="$destination/.env"
-    preparar_env "$env_file" "$previo" || { rm -rf "$temp"; return 1; }
+    preparar_env "$env_file" "$previo" || { limpiar_temp; return 1; }
 
     port="$(sed -n 's/^FRONT_PORT=//p' "$env_file" | tail -n 1)"
     if [[ -z "$port" ]]; then
@@ -323,23 +391,23 @@ instalar_desde_paquete() {
         port="${port:-8080}"
     fi
     [[ "$port" =~ ^[0-9]{1,5}$ ]] && (( 10#$port >= 1 && 10#$port <= 65535 )) \
-        || { rm -rf "$temp"; fail "Puerto inválido: debe estar entre 1 y 65535."; return 1; }
+        || { limpiar_temp; fail "Puerto inválido: debe estar entre 1 y 65535."; return 1; }
 
     info "Cargando imágenes Docker del paquete..."
     if ! docker load --input "$bundle_dir/images.tar"; then
-        rm -rf "$temp"
+        limpiar_temp
         fail "No se pudieron cargar las imágenes."
         return 1
     fi
 
     mkdir -p "$destination/backups/database" "$destination/backups/project"
     chmod 750 "$destination/backups" "$destination/backups/database" "$destination/backups/project"
-    cp "$bundle_dir/compose.yaml" "$destination/compose.yaml"
-    cp "$bundle_dir/install.sh" "$destination/install.sh"
+    copiar_si_distinto "$bundle_dir/compose.yaml" "$destination/compose.yaml"
+    copiar_si_distinto "$bundle_dir/install.sh" "$destination/install.sh"
     chmod 750 "$destination/install.sh"
     if [[ -d "$bundle_dir/migrations" ]]; then
         mkdir -p "$destination/migrations"
-        cp -a "$bundle_dir/migrations/." "$destination/migrations/"
+        [[ "$bundle_dir/migrations" -ef "$destination/migrations" ]] || cp -a "$bundle_dir/migrations/." "$destination/migrations/"
         chmod 750 "$destination/migrations"
     fi
 
@@ -356,7 +424,7 @@ instalar_desde_paquete() {
     printf '%s\n' "$destination" > "$CONFIG_FILE"
     chmod 600 "$CONFIG_FILE"
     INSTALL_DIR="$destination"
-    rm -rf "$temp"
+    limpiar_temp
 
     info 'Iniciando servicios...'
     if compose_instalado up -d --no-build --remove-orphans; then

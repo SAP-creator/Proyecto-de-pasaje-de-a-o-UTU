@@ -25,7 +25,7 @@ class Controller_Centro
     private const LOG_TYPE = "CENTRO CONTROLLER";
 
     private const SYS_NAME = "ApiAdminSys";
-    private const ROLES_VER = [enum_tipo_vecino, enum_tipo_operario, enum_tipo_admin_operador, enum_tipo_admin_general, enum_tipo_admin_sistema];        
+    private const ROLES_VER = [enum_tipo_vecino, enum_tipo_operario, enum_tipo_admin_operador, enum_tipo_admin_general, enum_tipo_admin_sistema];
     private const ROLES_PLANIFICADOR = [enum_tipo_admin_general];
     private const ROLES_RETIRO = [enum_tipo_admin_operador];
     private const ROLES_AJUSTE = [enum_tipo_operario, enum_tipo_admin_operador];
@@ -113,7 +113,7 @@ class Controller_Centro
         $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
         $payload = Util_VerifyData::verify_and_get_array($data, json_centro);
-            $id = Util_VerifyData::verify_and_get_int($payload, json_id);
+        $id = Util_VerifyData::verify_and_get_int($payload, json_id);
 
         $centro = Model_Centro::get_centro($id);
 
