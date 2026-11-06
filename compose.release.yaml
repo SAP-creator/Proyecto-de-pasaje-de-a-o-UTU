@@ -2,6 +2,7 @@
 # (sigeru-*) y el volumen (sigeru_mysql_data) sin importar en qué carpeta
 # esté instalado SiGeRU.
 name: sigeru
+
 services:
   front:
     image: ${FRONT_IMAGE:?Define FRONT_IMAGE en .env}
