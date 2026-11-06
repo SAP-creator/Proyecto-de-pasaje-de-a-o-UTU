@@ -13,7 +13,6 @@ include_once __DIR__ . "/../controladores/Controller_Auth.php";
 
 class Controller_Sign 
 {
-    private const SECRET_KEY = "TuMrTiUnPo lla. QuYaQuis Yo";
     private const LOG_TYPE = "SIGN CONTROLLER";
     private const SYS_NAME = "ApiAdminSys";
 
@@ -22,7 +21,12 @@ class Controller_Sign
      */
     public static function hash_password(string $password): string 
     {
-        return hash_hmac("sha256", $password, self::SECRET_KEY);
+        $secret = getenv("PASSWORD_HASH_SECRET");
+        if (!is_string($secret) || $secret === "") {
+            throw new RuntimeException("PASSWORD_HASH_SECRET is not configured");
+        }
+
+        return hash_hmac("sha256", $password, $secret);
     }
 
     public static function sign_in(array $data): Util_HttpResponse 
@@ -42,7 +46,7 @@ class Controller_Sign
         $input_ci = $user_payload[json_ci] ?? null;
         $input_password = $user_payload[json_password] ?? null;
 
-        if (filter_var($input_ci, FILTER_VALIDATE_INT) === false) {
+        if (Util_VerifyData::valid_int($input_ci) === null) {
             Model_Log::add_log_user(0, self::LOG_TYPE, "Intento de inicio de sesión fallido: Cédula no entera");
             return Util_HttpResponse::error(
                 Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCiFormat"),
@@ -141,15 +145,14 @@ class Controller_Sign
 
     public static function sign_up(array $data): Util_HttpResponse 
     {
-        $user_payload = $data[json_user] ?? null;
-
+        $user_payload = Util_VerifyData::verify_and_get_array($data, json_user);
         Util_VerifyData::keys_exists(true, $user_payload, json_ci, json_password, json_typeuser);
 
         $input_ci = $user_payload[json_ci];
         $input_password = $user_payload[json_password];
         $input_typeuser = $user_payload[json_typeuser];
 
-        if (filter_var($input_ci, FILTER_VALIDATE_INT) === false) {
+        if (Util_VerifyData::valid_int($input_ci) === null) {
             Model_Log::add_log_user(0, self::LOG_TYPE, "Intento de registro fallido: Cédula no entera");
             return Util_HttpResponse::error(
                 Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCiFormat"),
@@ -235,13 +238,12 @@ class Controller_Sign
 
     public static function accept_sign_up(array $data): Util_HttpResponse
     {
-        $user_payload = $data[json_user] ?? null;
-
+        $user_payload = Util_VerifyData::verify_and_get_array($data, json_user);
         Util_VerifyData::keys_exists(true, $user_payload, json_ci);
 
         $input_ci = $user_payload[json_ci];
 
-        if (filter_var($input_ci, FILTER_VALIDATE_INT) === false) {
+        if (Util_VerifyData::valid_int($input_ci) === null) {
             Model_Log::add_log_user(0, self::LOG_TYPE, "Aprobación de registro fallida: Cédula no entera");
             return Util_HttpResponse::error(
                 Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCiFormat"),

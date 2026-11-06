@@ -23,11 +23,12 @@ include_once __DIR__ . "/../controladores/Controller_Auth.php";
 class Controller_Centro
 {
     private const LOG_TYPE = "CENTRO CONTROLLER";
-    private const SYS_NAME = "ApiAdminSys";
 
-    private const ROLES_VER = [enum_tipo_operario, enum_tipo_admin_operador, enum_tipo_admin_general];
+    private const SYS_NAME = "ApiAdminSys";
+    private const ROLES_VER = [enum_tipo_vecino, enum_tipo_operario, enum_tipo_admin_operador, enum_tipo_admin_general, enum_tipo_admin_sistema];        
     private const ROLES_PLANIFICADOR = [enum_tipo_admin_general];
     private const ROLES_RETIRO = [enum_tipo_admin_operador];
+    private const ROLES_AJUSTE = [enum_tipo_operario, enum_tipo_admin_operador];
     private const ROLES_VER_RETIROS = [enum_tipo_admin_operador, enum_tipo_admin_general];
 
     private const UBICACION_MAX = 255;
@@ -112,7 +113,7 @@ class Controller_Centro
         $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
         $payload = Util_VerifyData::verify_and_get_array($data, json_centro);
-        $id = Util_VerifyData::verify_and_get_int($payload, json_id);
+            $id = Util_VerifyData::verify_and_get_int($payload, json_id);
 
         $centro = Model_Centro::get_centro($id);
 
@@ -295,9 +296,9 @@ class Controller_Centro
         // Sin VOLUMEN se retira todo lo que haya
         $volumen = null;
         if (isset($payload[json_volumen])) {
-            $volumen = filter_var($payload[json_volumen], FILTER_VALIDATE_FLOAT);
+            $volumen = Util_VerifyData::valid_float($payload[json_volumen]);
 
-            if ($volumen === false || $volumen <= 0) {
+            if ($volumen === null || $volumen <= 0) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Retiro rechazado en el centro {$id}: el volumen no es un número mayor a 0");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidVolumen"),
@@ -373,6 +374,54 @@ class Controller_Centro
         );
     }
 
+    /** Operador o admin operador ajusta el volumen real (incluido vaciado interno). */
+    public static function ajustar_volumen(array $data): Util_HttpResponse
+    {
+        Controller_Auth::valid_user_types($data, self::ROLES_AJUSTE);
+        $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
+        $payload = Util_VerifyData::verify_and_get_array($data, json_centro);
+        $id = Util_VerifyData::verify_and_get_int($payload, json_id);
+        $id_almacenamiento = Util_VerifyData::verify_and_get_int($payload, json_id_almacenamiento);
+        $volumen = Util_VerifyData::valid_float($payload[json_volumen_actual] ?? null);
+
+        if ($volumen === null || $volumen < 0) {
+            return self::error_ajuste($ci, "InvalidCurrentVolume", http_unprocessable_entity, "El volumen actual debe ser un número igual o mayor a 0");
+        }
+
+        $centro = Model_Centro::get_centro($id);
+        if ($centro === null) {
+            return self::error_ajuste($ci, "GetCentroError", http_internal_error, "Error al consultar el centro {$id}");
+        }
+        if ($centro === []) {
+            return self::error_ajuste($ci, "CentroNotFound", http_not_found, "El centro {$id} no existe");
+        }
+
+        $almacenamiento = null;
+        foreach ($centro['almacenamientos'] as $candidato) {
+            if ($candidato['id'] === $id_almacenamiento) {
+                $almacenamiento = $candidato;
+                break;
+            }
+        }
+        if ($almacenamiento === null) {
+            return self::error_ajuste($ci, "AlmacenamientoNotFound", http_not_found, "El almacenamiento no pertenece a ese centro");
+        }
+        if ($volumen > $almacenamiento['cantidad']) {
+            return self::error_ajuste($ci, "CurrentVolumeExceedsCapacity", http_unprocessable_entity, "El volumen no puede superar la capacidad del almacenamiento");
+        }
+
+        $resultado = Model_Centro::ajustar_volumen($id, $id_almacenamiento, (float) $volumen);
+        if ($resultado !== true) {
+            return self::error_ajuste($ci, "AdjustVolumeError", http_internal_error, "No se pudo ajustar el volumen del almacenamiento");
+        }
+
+        Model_Log::add_log_user($ci, self::LOG_TYPE, "Ajustó a {$volumen} litros el almacenamiento {$id_almacenamiento} del centro {$id}");
+        return Util_HttpResponse::ok(
+            Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::SYS_NAME, "VolumeAdjusted"),
+            [json_volumen_actual => (float) $volumen]
+        );
+    }
+
     public static function get_retiros(array $data): Util_HttpResponse
     {
         Controller_Auth::valid_user_types($data, self::ROLES_VER_RETIROS);
@@ -384,9 +433,9 @@ class Controller_Centro
         // Filtro opcional
         $id_almacenamiento = 0;
         if (isset($payload[json_id_almacenamiento])) {
-            $id_almacenamiento = filter_var($payload[json_id_almacenamiento], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id_almacenamiento = Util_VerifyData::valid_int($payload[json_id_almacenamiento], 1);
 
-            if ($id_almacenamiento === false) {
+            if ($id_almacenamiento === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Consulta de retiros rechazada: id de almacenamiento inválido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidAlmacenamientoId"),
@@ -428,6 +477,16 @@ class Controller_Centro
         return Util_HttpResponse::ok(
             Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::SYS_NAME, "RetirosFetched"),
             Util_Translator::sql_to_json_keys($retiros)
+        );
+    }
+
+    private static function error_ajuste(int $ci, string $name, int $status, string $description): Util_HttpResponse
+    {
+        Model_Log::add_log_user($ci, self::LOG_TYPE, $description);
+        return Util_HttpResponse::error(
+            Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, $name),
+            $status,
+            [json_error => $description]
         );
     }
 
@@ -475,6 +534,7 @@ class Controller_Centro
             );
         }
 
+        $ids_vistos = [];
         foreach ($lista as $almacenamiento) {
             if (!is_array($almacenamiento)) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Centro rechazado: un almacenamiento no es un objeto");
@@ -492,9 +552,9 @@ class Controller_Centro
                 );
             }
 
-            $cantidad = filter_var($almacenamiento[json_cantidad] ?? null, FILTER_VALIDATE_FLOAT);
+            $cantidad = Util_VerifyData::valid_float($almacenamiento[json_cantidad] ?? null);
 
-            if ($cantidad === false || $cantidad <= 0) {
+            if ($cantidad === null || $cantidad <= 0) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Centro rechazado: la cantidad de un almacenamiento no es un número mayor a 0");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCantidad"),
@@ -514,13 +574,22 @@ class Controller_Centro
                 );
             }
 
-            if (filter_var($almacenamiento[json_id], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+            $id = Util_VerifyData::valid_int($almacenamiento[json_id], 1);
+            if ($id === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Centro rechazado: el id de un almacenamiento no es válido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidAlmacenamientoId"),
                     http_unprocessable_entity
                 );
             }
+            if (in_array($id, $ids_vistos, true)) {
+                Model_Log::add_log_user($ci, self::LOG_TYPE, "Centro rechazado: un almacenamiento se repite en la lista");
+                return Util_HttpResponse::error(
+                    Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "DuplicatedAlmacenamientoId"),
+                    http_unprocessable_entity
+                );
+            }
+            $ids_vistos[] = $id;
         }
 
         return null;

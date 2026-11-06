@@ -93,9 +93,9 @@ class Controller_Ruta
         // Filtro opcional: rutas que empiezan o terminan en un centro
         $id_centro = 0;
         if (isset($data[json_id_centro])) {
-            $id_centro = filter_var($data[json_id_centro], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id_centro = Util_VerifyData::valid_int($data[json_id_centro], 1);
 
-            if ($id_centro === false) {
+            if ($id_centro === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Listado de rutas rechazado: id de centro inválido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCentroId"),
@@ -128,7 +128,7 @@ class Controller_Ruta
         $ci = (int) Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
         $payload = Util_VerifyData::verify_and_get_array($data, json_ruta);
-        $id = Util_VerifyData::verify_and_get_int($payload, json_id);
+            $id = Util_VerifyData::verify_and_get_int($payload, json_id ?? null);
 
         if (Model_Ruta::limpiar_ruta($id) === null) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Error en BD al revisar la ruta {$id}");
@@ -200,9 +200,9 @@ class Controller_Ruta
         // Todo es opcional: solo se modifica lo que llega
         $id_centro_inicio = null;
         if (isset($payload[json_id_centro_inicio])) {
-            $id_centro_inicio = filter_var($payload[json_id_centro_inicio], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id_centro_inicio = Util_VerifyData::valid_int($payload[json_id_centro_inicio], 1);
 
-            if ($id_centro_inicio === false) {
+            if ($id_centro_inicio === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Actualización de la ruta {$id} rechazada: id del centro de inicio inválido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCentroId"),
@@ -213,9 +213,9 @@ class Controller_Ruta
 
         $id_centro_final = null;
         if (isset($payload[json_id_centro_final])) {
-            $id_centro_final = filter_var($payload[json_id_centro_final], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id_centro_final = Util_VerifyData::valid_int($payload[json_id_centro_final], 1);
 
-            if ($id_centro_final === false) {
+            if ($id_centro_final === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Actualización de la ruta {$id} rechazada: id del centro de final inválido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCentroId"),
@@ -487,10 +487,10 @@ class Controller_Ruta
 
         foreach ($lista as $valor) {
             $id = (is_int($valor) || is_string($valor))
-                ? filter_var($valor, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
-                : false;
+                ? Util_VerifyData::valid_int($valor, 1)
+                : null;
 
-            if ($id === false) {
+            if ($id === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Ruta rechazada: un id de contenedor no es válido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidContenedorId"),

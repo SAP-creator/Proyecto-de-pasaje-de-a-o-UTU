@@ -153,7 +153,8 @@ class Model_User
         $db = new Util_DbConnection();
         $result = $db->executeQuery($sql, "iss", $ci, $clave, $type);
         
-        Model_Log::add_log_sql(self::MODEL_LOG, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}", $sql, [$ci, $clave, $type]);
+        // Never persist even a password hash in the SQL audit log.
+        Model_Log::add_log_sql(self::MODEL_LOG, "Crear solicitud de usuario CI: {$ci} con tipo: {$type}", $sql, [$ci, "[REDACTED]", $type]);
 
         return $result->success;
     }

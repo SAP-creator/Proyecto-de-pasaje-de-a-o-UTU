@@ -25,8 +25,7 @@ class Controller_Trayecto
             return self::error($ci, "GetTrayectosError", http_internal_error, "Error al listar trayectos");
         }
         Model_Log::add_log_user($ci, self::LOG_TYPE, "Listó trayectos");
-        return Util_HttpResponse::ok(self::code("TrayectosFetched"), Util_Translator::sql_to_json_keys($trayectos));
-    }
+        return Util_HttpResponse::ok(self::code("TrayectosFetched"), Util_Translator::sql_to_json_keys(self::ocultar_para_vecino($data, $trayectos)));    }
 
     public static function get_trayecto(array $data): Util_HttpResponse
     {
@@ -41,7 +40,26 @@ class Controller_Trayecto
             return self::error($ci, "TrayectoNotFound", http_not_found, "Trayecto {$id} inexistente");
         }
         Model_Log::add_log_user($ci, self::LOG_TYPE, "Consultó trayecto {$id}");
+        $trayecto = self::ocultar_para_vecino($data, [$trayecto])[0];
         return Util_HttpResponse::ok(self::code("TrayectoFetched"), [json_trayecto => Util_Translator::sql_to_json_keys($trayecto)]);
+    }
+
+        /**
+     * El vecino puede ver cuándo pasa el camión, pero no qué operario ni qué
+     * camión están asignados de forma automática (la cédula es un dato personal).
+     */
+    private static function ocultar_para_vecino(array $data, array $trayectos): array
+    {
+        $tipo = (string) Util_VerifyData::verify_and_get_from_token($data, json_typeuser);
+        if ($tipo !== enum_tipo_vecino) {
+            return $trayectos;
+        }
+
+        foreach ($trayectos as &$trayecto) {
+            unset($trayecto['cedula_operario_auto'], $trayecto['id_camion_auto']);
+        }
+        unset($trayecto);
+        return $trayectos;
     }
 
     public static function create_trayecto(array $data): Util_HttpResponse
@@ -49,7 +67,7 @@ class Controller_Trayecto
         $ci = self::authorize($data, self::ROLES_GESTION);
         $trayecto = Util_VerifyData::verify_and_get_array($data, json_trayecto);
         Util_VerifyData::keys_exists(true, $trayecto, json_id_ruta, json_hora);
-        $error = self::validate_fields($trayecto, $ci, true);
+        $error = self::validate_fields($trayecto, $ci);
         if ($error !== null) {
             return $error;
         }
@@ -93,7 +111,7 @@ class Controller_Trayecto
         $ci = self::authorize($data, self::ROLES_GESTION);
         $trayecto = Util_VerifyData::verify_and_get_array($data, json_trayecto);
         $id = Util_VerifyData::verify_and_get_int($trayecto, json_id);
-        $error = self::validate_fields($trayecto, $ci, false);
+        $error = self::validate_fields($trayecto, $ci);
         if ($error !== null) {
             return $error;
         }
@@ -172,29 +190,26 @@ class Controller_Trayecto
         return Util_HttpResponse::ok(self::code("TrayectoDeleted"));
     }
 
-    private static function validate_fields(array $trayecto, int $ci, bool $creating): ?Util_HttpResponse
+    private static function validate_fields(array $trayecto, int $ci): ?Util_HttpResponse
     {
-        foreach ([json_id_ruta, json_hora] as $key) {
-            if (($creating || array_key_exists($key, $trayecto)) && !array_key_exists($key, $trayecto)) {
-                return self::error($ci, "MissingTrayectoField", http_unprocessable_entity, "Falta el campo requerido {$key}");
-            }
-        }
-        if (array_key_exists(json_id_ruta, $trayecto) && (!is_int($trayecto[json_id_ruta]) && !(is_string($trayecto[json_id_ruta]) && ctype_digit($trayecto[json_id_ruta])) || (int) $trayecto[json_id_ruta] < 1)) {
+        if (array_key_exists(json_id_ruta, $trayecto)
+            && ((!is_int($trayecto[json_id_ruta]) && !is_string($trayecto[json_id_ruta])) || Util_VerifyData::valid_int($trayecto[json_id_ruta], 1) === null)) {
             return self::error($ci, "InvalidRutaId", http_unprocessable_entity, "ID de ruta inválido");
         }
         if (array_key_exists(json_dia_semana, $trayecto) && $trayecto[json_dia_semana] !== null && !in_array($trayecto[json_dia_semana], sql_dia_semana, true)) {
             return self::error($ci, "InvalidTrayectoDay", http_unprocessable_entity, "Día de semana inválido");
         }
-        if (array_key_exists(json_hora, $trayecto) && !self::valid_time($trayecto[json_hora])) {
+        if (array_key_exists(json_hora, $trayecto) && !Util_VerifyData::valid_time($trayecto[json_hora])) {
             return self::error($ci, "InvalidTrayectoTime", http_unprocessable_entity, "Hora debe tener formato HH:MM:SS");
         }
-        if (array_key_exists(json_fecha_especial, $trayecto) && $trayecto[json_fecha_especial] !== null && !self::valid_date_only($trayecto[json_fecha_especial])) {
+        if (array_key_exists(json_fecha_especial, $trayecto) && $trayecto[json_fecha_especial] !== null && !Util_VerifyData::valid_date($trayecto[json_fecha_especial], "!Y-m-d")) {
             return self::error($ci, "InvalidSpecialDate", http_unprocessable_entity, "Fecha especial debe tener formato YYYY-MM-DD");
         }
         if (array_key_exists(json_inicio_automatico, $trayecto) && !is_bool($trayecto[json_inicio_automatico]) && !in_array($trayecto[json_inicio_automatico], [0, 1, "0", "1"], true)) {
             return self::error($ci, "InvalidAutomaticStart", http_unprocessable_entity, "Inicio automático debe ser booleano");
         }
-        if (array_key_exists(json_id_camion_auto, $trayecto) && $trayecto[json_id_camion_auto] !== null && (!is_int($trayecto[json_id_camion_auto]) && !(is_string($trayecto[json_id_camion_auto]) && ctype_digit($trayecto[json_id_camion_auto])) || (int) $trayecto[json_id_camion_auto] < 1)) {
+        if (array_key_exists(json_id_camion_auto, $trayecto) && $trayecto[json_id_camion_auto] !== null
+            && ((!is_int($trayecto[json_id_camion_auto]) && !is_string($trayecto[json_id_camion_auto])) || Util_VerifyData::valid_int($trayecto[json_id_camion_auto], 1) === null)) {
             return self::error($ci, "InvalidTruckId", http_unprocessable_entity, "ID de camión inválido");
         }
         if (array_key_exists(json_cedula_operario_auto, $trayecto) && $trayecto[json_cedula_operario_auto] !== null && (!is_string($trayecto[json_cedula_operario_auto]) || trim($trayecto[json_cedula_operario_auto]) === "" || mb_strlen($trayecto[json_cedula_operario_auto]) > 20)) {
@@ -228,24 +243,6 @@ class Controller_Trayecto
             return self::error($ci, "CheckCamionError", http_internal_error, "Error al validar camión {$id}");
         }
         return $exists ? null : self::error($ci, "CamionNotFound", http_not_found, "Camión {$id} inexistente");
-    }
-
-    private static function valid_time(mixed $value): bool
-    {
-        if (!is_string($value)) {
-            return false;
-        }
-        $parsed = DateTime::createFromFormat("H:i:s", $value);
-        return $parsed !== false && $parsed->format("H:i:s") === $value;
-    }
-
-    private static function valid_date_only(mixed $value): bool
-    {
-        if (!is_string($value)) {
-            return false;
-        }
-        $parsed = DateTime::createFromFormat("Y-m-d", $value);
-        return $parsed !== false && $parsed->format("Y-m-d") === $value;
     }
 
     private static function authorize(array $data, array $roles): int

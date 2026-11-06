@@ -59,15 +59,7 @@ class Controller_AdminSys
             );
         }
 
-        $translated_requests = [];
-        foreach ($requests as $req) {
-            $translated_row = [];
-            foreach ($req as $sql_col => $value) {
-                $json_key = Util_Translator::sql_to_json($sql_col);
-                $translated_row[$json_key ?? $sql_col] = $value;
-            }
-            $translated_requests[] = $translated_row;
-        }
+        $translated_requests = Util_Translator::sql_to_json_keys($requests);
 
         $admin_ci = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
@@ -153,15 +145,7 @@ class Controller_AdminSys
             );
         }
 
-        $translated_logs = [];
-        foreach ($logs as $log) {
-            $translated_row = [];
-            foreach ($log as $sql_col => $value) {
-                $json_key = Util_Translator::sql_to_json($sql_col);
-                $translated_row[$json_key ?? $sql_col] = $value;
-            }
-            $translated_logs[] = $translated_row;
-        }
+        $translated_logs = Util_Translator::sql_to_json_keys($logs);
 
         $admin_ci = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
@@ -187,15 +171,7 @@ class Controller_AdminSys
             );
         }
 
-        $translated_logs = [];
-        foreach ($logs as $log) {
-            $translated_row = [];
-            foreach ($log as $sql_col => $value) {
-                $json_key = Util_Translator::sql_to_json($sql_col);
-                $translated_row[$json_key ?? $sql_col] = $value;
-            }
-            $translated_logs[] = $translated_row;
-        }
+        $translated_logs = Util_Translator::sql_to_json_keys($logs);
 
         $admin_ci = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
@@ -218,15 +194,7 @@ class Controller_AdminSys
             );
         }
 
-        $translated_logs = [];
-        foreach ($sql_logs as $log) {
-            $translated_row = [];
-            foreach ($log as $sql_col => $value) {
-                $json_key = Util_Translator::sql_to_json($sql_col);
-                $translated_row[$json_key ?? $sql_col] = $value;
-            }
-            $translated_logs[] = $translated_row;
-        }
+        $translated_logs = Util_Translator::sql_to_json_keys($sql_logs);
 
         $admin_ci = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 
@@ -254,11 +222,7 @@ class Controller_AdminSys
             );
         }
 
-        $translated_details = [];
-        foreach ($user_details as $sql_col => $value) {
-            $json_key = Util_Translator::sql_to_json($sql_col);
-            $translated_details[$json_key ?? $sql_col] = $value;
-        }
+        $translated_details = Util_Translator::sql_to_json_keys($user_details);
 
         $ci = Util_VerifyData::verify_and_get_from_token($data, json_ci);
 

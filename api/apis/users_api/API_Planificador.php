@@ -1,5 +1,5 @@
 <?php
-# Api de admin general / planificador (AP): CRUD de contenedores, centros y rutas + lo de AO salvo retirar.
+# API de planificacion (AP): CRUD de contenedores, centros y rutas + lo de AO salvo retirar.
 
 include_once __DIR__ . "/../../constantes/Const_Path.php";
 include_once __DIR__ . "/../../constantes/Const_Sql.php";
@@ -11,7 +11,7 @@ include_once __DIR__ . "/../../controladores/Controller_Camion.php";
 include_once __DIR__ . "/../../controladores/Controller_Trayecto.php";
 include_once __DIR__ . "/../../controladores/Controller_Ejecucion.php";
 
-Util_Router::run(path_api_admin_general, [enum_tipo_admin_general], [
+Util_Router::run(path_api_planificador, [enum_tipo_admin_general], [
         "GET /contenedor"      =>           [Controller_Contenedor::class, "get_contenedores"],
         "GET /contenedor/data" =>           [Controller_Contenedor::class, "get_contenedor"],
         "POST /contenedor/estado"    =>     [Controller_Contenedor::class, "add_estado"],
@@ -38,8 +38,4 @@ Util_Router::run(path_api_admin_general, [enum_tipo_admin_general], [
         "GET /camion/data"       =>         [Controller_Camion::class, "get_camion"],
         "GET /trayecto"          =>         [Controller_Trayecto::class, "get_trayectos"],
         "GET /trayecto/data"     =>         [Controller_Trayecto::class, "get_trayecto"],
-        "GET /ejecucion"         =>         [Controller_Ejecucion::class, "get_ejecuciones"],
-        "GET /ejecucion/data"    =>         [Controller_Ejecucion::class, "get_ejecucion"],
-        "POST /ejecucion/aprobar"  =>       [Controller_Ejecucion::class, "aprobar"],
-        "POST /ejecucion/rechazar" =>       [Controller_Ejecucion::class, "rechazar"],
 ]);

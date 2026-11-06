@@ -63,7 +63,7 @@ class Controller_Contenedor
             return $error;
         }
 
-        $en_funcion = filter_var($contenedor[json_en_funcion] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $en_funcion = Util_VerifyData::valid_boolean($contenedor[json_en_funcion] ?? true) ?? true;
 
         $id = Model_Contenedor::create_contenedor(
             trim($contenedor[json_ubicacion]),
@@ -97,7 +97,7 @@ class Controller_Contenedor
         // Filtros opcionales
         $en_funcion = null;
         if (isset($data[json_en_funcion])) {
-            $en_funcion = filter_var($data[json_en_funcion], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            $en_funcion = Util_VerifyData::valid_boolean($data[json_en_funcion]);
 
             if ($en_funcion === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Listado de contenedores rechazado: en_funcion inválido");
@@ -128,10 +128,22 @@ class Controller_Contenedor
         }
 
         Model_Log::add_log_user($ci, self::LOG_TYPE, "Listó contenedores");
+        $lista = Util_Translator::sql_to_json_keys($contenedores);
+        foreach ($lista as &$elemento) {
+            $almacenado = $elemento[json_almacenado] ?? [];
+            $estado = $elemento[json_estado_actual] ?? [];
+            $llenado = $elemento[json_llenado_actual] ?? [];
+            $elemento[json_tipo_basuras] = $almacenado[json_tipo_basuras] ?? [];
+            $elemento[json_cantidad] = $almacenado[json_cantidad] ?? null;
+            $elemento[json_condicion] = $estado[json_condicion] ?? [];
+            $elemento[json_basura] = $estado[json_basura] ?? [];
+            $elemento[json_llenado] = $llenado[json_llenado] ?? 0;
+        }
+        unset($elemento);
 
         return Util_HttpResponse::ok(
             Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::SYS_NAME, "ContenedoresFetched"),
-            Util_Translator::sql_to_json_keys($contenedores)
+            $lista
         );
     }
 
@@ -204,7 +216,7 @@ class Controller_Contenedor
 
         // Todo es opcional: solo se modifica lo que llega
         $ubicacion = isset($payload[json_ubicacion]) ? trim($payload[json_ubicacion]) : null;
-        $en_funcion = isset($payload[json_en_funcion]) ? filter_var($payload[json_en_funcion], FILTER_VALIDATE_BOOLEAN) : null;
+        $en_funcion = isset($payload[json_en_funcion]) ? (Util_VerifyData::valid_boolean($payload[json_en_funcion]) ?? false) : null;
         $almacenado = (array) ($payload[json_almacenado] ?? []);
         $tipo_basuras = $almacenado[json_tipo_basuras] ?? null;
         $cantidad = isset($almacenado[json_cantidad]) ? (float) $almacenado[json_cantidad] : null;
@@ -466,6 +478,16 @@ class Controller_Contenedor
 
         $contenedor = Util_VerifyData::verify_and_get_array($data, json_contenedor);
         $id = Util_VerifyData::verify_and_get_int($contenedor, json_id);
+        $id_ejecucion = null;
+        if (array_key_exists(json_id_ejecucion, $contenedor)) {
+            $id_ejecucion = Util_VerifyData::valid_int($contenedor[json_id_ejecucion], 1);
+            if ($id_ejecucion === null) {
+                return Util_HttpResponse::error(
+                    Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidExecutionId"),
+                    http_unprocessable_entity
+                );
+            }
+        }
         $fecha = $contenedor[json_fecha] ?? date('Y-m-d H:i:s');
 
         if (!Util_VerifyData::valid_date($fecha)) {
@@ -502,11 +524,21 @@ class Controller_Contenedor
             );
         }
 
-        if (Model_Contenedor::empty_contenedor($id, $actual['almacenado']['tipo_basuras'], $fecha) === null) {
+        $resultado = Model_Contenedor::empty_contenedor($id, $actual['almacenado']['tipo_basuras'], $fecha, $id_ejecucion === null ? null : (int) $id_ejecucion, (string) $ci);
+        if ($resultado !== "ok") {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Error en BD al vaciar el contenedor {$id}");
+            $error = match ($resultado) {
+                "execution_not_found" => ["ExecutionNotFound", http_not_found, "Ejecución inexistente"],
+                "forbidden" => ["ExecutionAssignmentForbidden", http_forbidden, "La ejecución no está asignada a este operario"],
+                "invalid_state" => ["InvalidExecutionState", http_conflict, "Solo se puede vaciar un contenedor durante una ejecución en curso"],
+                "not_in_execution" => ["ContainerNotInExecution", http_unprocessable_entity, "El contenedor no pertenece a esta ejecución"],
+                "already_emptied" => ["ContainerAlreadyEmptied", http_conflict, "El contenedor ya fue vaciado en esta ejecución"],
+                default => ["EmptyContenedorError", http_internal_error, "No se pudo registrar el vaciado del contenedor"]
+            };
             return Util_HttpResponse::error(
-                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "EmptyContenedorError"),
-                http_internal_error
+                Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, $error[0]),
+                $error[1],
+                [json_error => $error[2]]
             );
         }
 
@@ -601,9 +633,9 @@ class Controller_Contenedor
         // Filtros opcionales
         $id_contenedor = 0;
         if (isset($data[json_id_contenedor])) {
-            $id_contenedor = filter_var($data[json_id_contenedor], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $id_contenedor = Util_VerifyData::valid_int($data[json_id_contenedor], 1);
 
-            if ($id_contenedor === false) {
+            if ($id_contenedor === null) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Listado de incidentes rechazado: id de contenedor inválido");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidContenedorId"),
@@ -632,10 +664,17 @@ class Controller_Contenedor
         }
 
         Model_Log::add_log_user($ci, self::LOG_TYPE, "Listó incidentes");
+        $lista = Util_Translator::sql_to_json_keys($incidentes);
+        foreach ($lista as &$incidente) {
+            if (($incidente[json_estado_incidente] ?? null) === enum_incidente_resuelto) {
+                $incidente[json_estado_incidente] = enum_incidente_terminado;
+            }
+        }
+        unset($incidente);
 
         return Util_HttpResponse::ok(
             Util_Code::create(StatusCode::OK, LayerCode::CONTROLLER, self::SYS_NAME, "IncidentesFetched"),
-            Util_Translator::sql_to_json_keys($incidentes)
+            $lista
         );
     }
 
@@ -790,7 +829,7 @@ class Controller_Contenedor
         }
 
         if (isset($payload[json_en_funcion])
-            && filter_var($payload[json_en_funcion], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === null) {
+            && Util_VerifyData::valid_boolean($payload[json_en_funcion]) === null) {
             Model_Log::add_log_user($ci, self::LOG_TYPE, "Contenedor rechazado: en_funcion no es un booleano");
             return Util_HttpResponse::error(
                 Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidEnFuncion"),
@@ -822,9 +861,9 @@ class Controller_Contenedor
         }
 
         if (array_key_exists(json_cantidad, $almacenado)) {
-            $cantidad = filter_var($almacenado[json_cantidad], FILTER_VALIDATE_FLOAT);
+            $cantidad = Util_VerifyData::valid_float($almacenado[json_cantidad]);
 
-            if ($cantidad === false || $cantidad <= 0) {
+            if ($cantidad === null || $cantidad <= 0) {
                 Model_Log::add_log_user($ci, self::LOG_TYPE, "Contenedor rechazado: la cantidad no es un número mayor a 0");
                 return Util_HttpResponse::error(
                     Util_Code::create(StatusCode::ERROR, LayerCode::CONTROLLER, self::SYS_NAME, "InvalidCantidad"),

@@ -21,6 +21,7 @@ Util_Router::run(path_api_operador, [enum_tipo_operario], [
         "POST /contenedor/vaciado" =>   [Controller_Contenedor::class, "empty_contenedor"],
         "GET /centro" =>                [Controller_Centro::class, "get_centros"],
         "GET /centro/data" =>           [Controller_Centro::class, "get_centro"],
+        "POST /centro/ajuste" =>        [Controller_Centro::class, "ajustar_volumen"],
         "GET /ruta" =>                  [Controller_Ruta::class, "get_rutas"],
         "GET /ruta/data" =>             [Controller_Ruta::class, "get_ruta"],
         "GET /ruta/contenedor" =>       [Controller_Ruta::class, "get_contenedor_en_slot"],

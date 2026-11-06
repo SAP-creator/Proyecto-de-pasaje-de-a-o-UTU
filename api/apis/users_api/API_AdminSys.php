@@ -8,6 +8,7 @@ include_once __DIR__ . "/../../controladores/Controller_AdminSys.php";
 include_once __DIR__ . "/../../controladores/Controller_Sign.php";
 include_once __DIR__ . "/../../controladores/Controller_ChangeUser.php";
 include_once __DIR__ . "/../../controladores/Controller_Contenedor.php";
+include_once __DIR__ . "/../../controladores/Controller_Centro.php";
 include_once __DIR__ . "/../../controladores/Controller_Ruta.php";
 
 Util_Router::run(path_api_sysadmin, [enum_tipo_admin_sistema], [
@@ -31,6 +32,8 @@ Util_Router::run(path_api_sysadmin, [enum_tipo_admin_sistema], [
         "POST /contenedor/estado" =>    [Controller_Contenedor::class, "add_estado"],
         "POST /contenedor/incidente" => [Controller_Contenedor::class, "create_incidente"],
         "GET /contenedor/incidente" =>  [Controller_Contenedor::class, "get_incidentes"],
+        "GET /centro" =>                [Controller_Centro::class, "get_centros"],
+        "GET /centro/data" =>           [Controller_Centro::class, "get_centro"],
         "GET /ruta" =>                  [Controller_Ruta::class, "get_rutas"],
         "GET /ruta/data" =>             [Controller_Ruta::class, "get_ruta"],
         "GET /ruta/contenedor" =>       [Controller_Ruta::class, "get_contenedor_en_slot"],
