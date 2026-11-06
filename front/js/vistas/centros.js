@@ -85,6 +85,23 @@ function crearVistaCentros(seccion) {
     });
   }
 
+  function abrirFormularioDeAjuste(idCentro, almacenamiento) {
+    abrirFormulario({
+      titulo: traducir('a.ajustar'),
+      campos: [
+        { nombre: 'VOLUMEN_ACTUAL', etiqueta: 'k.VOLUMEN_ACTUAL', tipo: 'numero', min: 0, max: almacenamiento.CANTIDAD, paso: 'any', valor: almacenamiento.VOLUMEN_ACTUAL || 0 }
+      ],
+      enviar: function (valores) {
+        return Api.llamarComoRol('POST', '/centro/ajuste', { CENTRO: {
+          ID: idCentro,
+          ID_ALMACENAMIENTO: almacenamiento.ID,
+          VOLUMEN_ACTUAL: Number(valores.VOLUMEN_ACTUAL)
+        } });
+      },
+      alTerminar: cargarCentros
+    });
+  }
+
   async function abrirDetalleDelCentro(idCentro) {
     const centro = await pedirDetalleDelCentro(idCentro);
     if (centro === null) {
@@ -106,9 +123,13 @@ function crearVistaCentros(seccion) {
     ];
 
     let funcionDeBotones = null;
-    if (rolActualEs('AO')) {
+    if (rolActualEs('O', 'AO')) {
       funcionDeBotones = function (almacenamiento) {
-        return [crearBoton('a.retirar', function () { abrirFormularioDeRetiro(idCentro, almacenamiento); })];
+        const botones = [crearBoton('a.ajustar', function () { abrirFormularioDeAjuste(idCentro, almacenamiento); })];
+        if (rolActualEs('AO')) {
+          botones.push(crearBoton('a.retirar', function () { abrirFormularioDeRetiro(idCentro, almacenamiento); }));
+        }
+        return botones;
       };
     }
 
@@ -143,7 +164,17 @@ function crearVistaCentros(seccion) {
 
   const columnas = [
     { titulo: 'k.ID', valor: function (c) { return '#' + c.ID; } },
-    { titulo: 'k.UBICACION', valor: function (c) { return c.UBICACION; } }
+    { titulo: 'k.UBICACION', valor: function (c) { return c.UBICACION; } },
+    {
+      titulo: 'k.VOLUMEN_ACTUAL',
+      valor: function (c) {
+        const almacenamientos = convertirALista(c.ALMACENAMIENTOS);
+        if (almacenamientos.length === 0) { return '—'; }
+        return crearElemento('div', {}, almacenamientos.map(function (a) {
+          return crearElemento('div', {}, crearEtiquetas(a.TIPO_BASURAS), (a.VOLUMEN_ACTUAL || 0) + ' / ' + a.CANTIDAD + ' L');
+        }));
+      }
+    }
   ];
 
   async function cargarCentros() {

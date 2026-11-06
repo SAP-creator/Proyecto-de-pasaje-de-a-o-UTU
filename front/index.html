@@ -13,7 +13,7 @@
   <header class="topbar" id="top"></header>
 
   <main>
-    <!-- Presentación: texto a la izquierda y tres tarjetas a la derecha. -->
+    <!-- Presentación: texto de SGeR a la izquierda, dos tarjetas a la derecha y la foto de los camiones de fondo. -->
     <section class="hero">
       <div class="copy">
         <h1 data-i18n="home.title"></h1>
@@ -24,31 +24,30 @@
         </div>
       </div>
 
-      <!-- Cada "slot" es un espacio reservado. Reemplazalo por un <img> o <video> con el material real. -->
       <div class="stack">
-        <div class="slot" data-i18n="home.s1"></div>
         <div class="slot" data-i18n="home.s2"></div>
         <div class="slot" data-i18n="home.s3"></div>
       </div>
     </section>
 
-    <!-- Video del camión y texto sobre el trabajo. -->
+    <!-- Foto de los camiones a la izquierda y texto sobre el trabajo a la derecha. -->
     <section class="band">
-      <div class="slot" data-i18n="home.video"></div>
-      <div class="slot" data-i18n="home.work"></div>
+      <img class="photo" src="assets/camiones-noche.jpg" data-i18n-alt="home.work.alt" alt="">
+      <div class="text">
+        <h2 data-i18n="home.work.title"></h2>
+        <p data-i18n="home.work.text"></p>
+      </div>
     </section>
 
-    <!-- GIFs a los costados y llamada a participar en el centro. -->
-    <section class="trio">
-      <div class="slot dark" data-i18n="home.gif1"></div>
-      <div class="mid">
-        <div class="slot dark" data-i18n="home.join"></div>
-        <div class="cta">
-          <a class="login" href="pages/login.html" data-i18n="nav.login"></a>
-          <a class="btn pri pill" href="pages/login.html?m=up" data-i18n="nav.signup"></a>
-        </div>
+    <!-- Llamada a participar y botones de ingreso. -->
+    <section class="join">
+      <div class="join-banner">
+        <h2 data-i18n="home.join"></h2>
       </div>
-      <div class="slot dark" data-i18n="home.gif2"></div>
+      <div class="cta">
+        <a class="login" href="pages/login.html" data-i18n="nav.login"></a>
+        <a class="btn pri pill" href="pages/login.html?m=up" data-i18n="nav.signup"></a>
+      </div>
     </section>
   </main>
 

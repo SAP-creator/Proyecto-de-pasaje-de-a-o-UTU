@@ -50,6 +50,29 @@ async function opcionesDeCamiones() {
   return opciones;
 }
 
+// Recupera los almacenamientos del centro final y prioriza los compatibles con el camión.
+async function datosDeDestinoDeEjecucion(idEjecucion) {
+  const respuestaEjecucion = await Api.llamarComoRol('GET', '/ejecucion/data', { EJECUCION: { ID: idEjecucion } });
+  if (!respuestaEjecucion.exito) { return null; }
+  const ejecucion = respuestaEjecucion.datos.EJECUCION || respuestaEjecucion.datos;
+  const respuestaRuta = await Api.llamarComoRol('GET', '/ruta/data', { RUTA: { ID: Number(ejecucion.ID_RUTA) } });
+  if (!respuestaRuta.exito) { return null; }
+  const ruta = respuestaRuta.datos.RUTA || respuestaRuta.datos;
+  if (!ruta.ID_CENTRO_FINAL) { return { almacenamientos: [], seleccionados: [] }; }
+
+  const respuestaCentro = await Api.llamarComoRol('GET', '/centro/data', { CENTRO: { ID: Number(ruta.ID_CENTRO_FINAL) } });
+  if (!respuestaCentro.exito) { return null; }
+  const centro = respuestaCentro.datos.CENTRO || respuestaCentro.datos;
+  const almacenamientos = convertirALista(centro.ALMACENAMIENTOS);
+  const respuestaCamion = await Api.llamarComoRol('GET', '/camion/data', { CAMION: { ID: Number(ejecucion.ID_CAMION) } });
+  const camion = respuestaCamion.exito ? (respuestaCamion.datos.CAMION || respuestaCamion.datos) : {};
+  const tiposCamion = convertirALista(camion.TIPOS_BASURA);
+  const compatibles = almacenamientos.filter(function (almacenamiento) {
+    return convertirALista(almacenamiento.TIPO_BASURAS).some(function (tipo) { return tiposCamion.includes(tipo); });
+  });
+  return { almacenamientos: almacenamientos, seleccionados: compatibles.length > 0 ? compatibles : almacenamientos };
+}
+
 // El estado del camión llega como ESTADO_CAMION (o ESTADO en algunas respuestas).
 function estadoDelCamion(camion) {
   if (camion.ESTADO_CAMION !== undefined) {

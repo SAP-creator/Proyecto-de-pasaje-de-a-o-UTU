@@ -8,7 +8,7 @@ const TEXTOS_PT = {
 
   // Generales
   "company": "Logo da empresa",
-  "footer": "SGeR · Propriedade da Sua Empresa. Todos os direitos reservados. O uso do sistema está sujeito aos termos de serviço, à política de privacidade e à legislação vigente.",
+  "footer": "SGeR · Propriedade da SAP&E. Todos os direitos reservados. O uso deste sistema está sujeito aos termos de serviço, à política de privacidade e à legislação vigente.",
   "lang": "Idioma",
   "close": "Fechar",
   "confirm": "Confirmar",
@@ -58,14 +58,12 @@ const TEXTOS_PT = {
   // Página principal
   "home.title": "Plano SGeR de coleta de resíduos",
   "home.lead": "Coordenamos a coleta de resíduos na sua região de forma eficiente, reduzindo o impacto ambiental e melhorando a qualidade de vida do bairro.",
-  "home.s1": "Notícias do serviço: novidades da coleta e como o plano está funcionando.",
   "home.s2": "Apoiamos um futuro mais verde: cada contêiner bem gerido conta.",
   "home.s3": "Sua cidade mais limpa, com rotas planejadas e contêineres monitorados.",
-  "home.video": "Espaço para o vídeo do caminhão de lixo",
-  "home.work": "Nosso trabalho é importante: mantém os bairros limpos e reduz o impacto ambiental.",
-  "home.gif1": "GIF: equipes em ação",
-  "home.gif2": "GIF: caminhão percorrendo a cidade",
-  "home.join": "Faça parte do projeto: ajude-nos a reportar incidentes.",
+  "home.work.title": "Nosso trabalho importa",
+  "home.work.text": "Mantém os bairros limpos e reduz o impacto ambiental",
+  "home.work.alt": "Caminhões de coleta de lixo estacionados à noite",
+  "home.join": "Faça parte do nosso projeto: ajude-nos a reportar incidentes",
 
   // Ingreso y registro
   "login.back": "Voltar ao início",
@@ -104,6 +102,9 @@ const TEXTOS_PT = {
   "a.opciones": "Opções",
   "a.aceptar": "Aceitar",
   "a.retirar": "Retirar",
+    "a.ajustar": "Ajustar volume",
+    "a.activar": "Ativar",
+    "a.desactivar": "Desativar",
   "a.retiros": "Ver retiradas",
   "a.vermapa": "Ver no mapa",
   "a.aprobar": "Aprovar execução",
@@ -120,12 +121,18 @@ const TEXTOS_PT = {
   "ruta.anterior": "Anterior",
   "ruta.siguiente": "Próxima",
   "ruta.proxima": "Próxima parada",
+  "ruta.vaciado": "Contêiner esvaziado nesta execução",
   "ruta.otras": "Outros pontos",
   "ruta.yo": "Sua posição",
   "ruta.centrar": "Minha posição",
   "ruta.vertodo": "Ver toda a rota",
   "ruta.nogps": "Não foi possível obter sua posição. Verifique a permissão de localização do navegador (em um site real é preciso https).",
   "ruta.sinparadas": "A rota não tem paradas com localização válida.",
+
+  // Etiquetas de los puntos de una ruta en el mapa: "Saída", "C1", "C2"..., "Chegada"
+  "ruta.salida": "Saída",
+  "ruta.llegada": "Chegada",
+  "ruta.c": "C",
 
   // Preguntas de confirmación
   "q.borrar": "Tem certeza de que deseja excluir? Esta ação não pode ser desfeita.",
@@ -134,6 +141,7 @@ const TEXTOS_PT = {
   // Ayudas bajo los campos
   "hint.fecha": "Opcional. Formato AAAA-MM-DD HH:MM:SS; se vazio, usa-se a data atual.",
   "hint.llenado": "De 0 (vazio) a 11 (transbordando).",
+    "hint.llenadoCamion": "Porcentagem de carga do caminhão, de 0 a 10. Essa proporção da capacidade será adicionada ao centro final.",
   "hint.litros": "Em litros.",
   "hint.retiro": "Se vazio, retira-se tudo.",
   "hint.diaofecha": "Informe um dia da semana ou uma data especial, não ambos.",
@@ -202,7 +210,7 @@ const TEXTOS_PT = {
   "k.ID_CAMION": "Caminhão",
   "k.CEDULA_OPERARIO": "Cédula do operador",
   "k.NOTAS": "Notas",
-  "k.LLENADO_CAMION": "Nível do caminhão",
+  "k.LLENADO_CAMION": "Porcentagem de carga do caminhão",
   "k.ESTADO_EJECUCION": "Estado",
   "k.TYPELOG": "Tipo",
   "k.TEXTO": "Informação",
@@ -250,6 +258,7 @@ const TEXTOS_PT = {
   "e.Pendiente": "Pendente",
   "e.En proceso": "Em andamento",
   "e.Resuelto": "Resolvido",
+  "e.Terminado": "Concluído",
   "e.disponible": "Disponível",
   "e.no disponible": "Indisponível",
   "e.en trayecto": "Em trajeto",

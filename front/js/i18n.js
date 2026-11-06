@@ -166,7 +166,7 @@ function traducirCodigoDelServidor(codigo, fueExitoso, estadoHttp) {
   return traducir('err.generic');
 }
 
-// Traduce el HTML estático: elementos con data-i18n (texto) y data-i18n-ph (placeholder).
+// Traduce el HTML estático: elementos con data-i18n (texto), data-i18n-ph (placeholder) y data-i18n-alt (texto alternativo de imágenes).
 function traducirPagina() {
   const conTexto = document.querySelectorAll('[data-i18n]');
   for (const elemento of conTexto) {
@@ -176,5 +176,10 @@ function traducirPagina() {
   const conPlaceholder = document.querySelectorAll('[data-i18n-ph]');
   for (const elemento of conPlaceholder) {
     elemento.placeholder = traducir(elemento.dataset.i18nPh);
+  }
+
+  const conTextoAlternativo = document.querySelectorAll('[data-i18n-alt]');
+  for (const elemento of conTextoAlternativo) {
+    elemento.alt = traducir(elemento.dataset.i18nAlt);
   }
 }

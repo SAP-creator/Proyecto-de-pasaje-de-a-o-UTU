@@ -7,7 +7,7 @@
 const AccionesContenedor = {
 
   // Ventana con todos los datos de un contenedor y los botones de acciones según el rol.
-  abrirDetalle: async function (idContenedor) {
+  abrirDetalle: async function (idContenedor, idEjecucion) {
     const respuesta = await Api.llamarComoRol('GET', '/contenedor/data', { CONTENEDOR: { ID: idContenedor } });
     if (!respuesta.exito) {
       mostrarAviso(respuesta.mensaje, 'error');
@@ -33,7 +33,7 @@ const AccionesContenedor = {
     const botones = crearElemento('div', { clase: 'row-btns', style: 'justify-content:flex-start' });
     botones.append(crearBoton('a.reportar', function () { AccionesContenedor.reportarTodo(idContenedor); }, 'btn'));
     if (rolActualEs('O')) {
-      botones.append(crearBoton('a.vaciar', function () { AccionesContenedor.registrarVaciado(idContenedor); }, 'btn'));
+      botones.append(crearBoton('a.vaciar', function () { AccionesContenedor.registrarVaciado(idContenedor, idEjecucion); }, 'btn'));
     }
 
     const contenido = [construirDetalle(datosPrincipales), botones];
@@ -42,7 +42,26 @@ const AccionesContenedor = {
       contenido.push(crearElemento('details', {}, resumen, construirDetalle(historiales[nombre])));
     }
 
-    Modal.abrir(traducir('k.CONTENEDOR') + ' #' + idContenedor, contenido, { ancho: true });
+    const posicion = leerUbicacion(contenedor.UBICACION);
+    let miniMapa = null;
+    if (posicion !== null) {
+      miniMapa = crearElemento('div', { clase: 'map-box', style: 'height:180px;min-height:180px;margin:0 0 1rem' });
+      contenido.unshift(miniMapa);
+    }
+    const modal = Modal.abrir(traducir('k.CONTENEDOR') + ' #' + idContenedor, contenido, { ancho: true });
+    if (miniMapa !== null) {
+      try {
+        await Mapas.cargar();
+        if (miniMapa.isConnected) {
+          const mapa = Mapas.crear(miniMapa, posicion, 15);
+          Mapas.crearMarcador(mapa, posicion, esVerdadero(contenedor.EN_FUNCION) ? '#5f9a22' : '#7b8680', false, '#' + idContenedor);
+          requestAnimationFrame(function () { mapa.invalidateSize(); });
+          modal.elemento.addEventListener('DOMNodeRemoved', function () { mapa.remove(); }, { once: true });
+        }
+      } catch (error) {
+        miniMapa.replaceChildren(crearElemento('div', { clase: 'empty', claveTexto: 'map.err' }));
+      }
+    }
   },
 
   // Qué condiciones y estados de basura puede reportar el rol actual.
@@ -214,9 +233,11 @@ const AccionesContenedor = {
   },
 
   // Devuelve la respuesta de la API (o null si la persona canceló), para que quien llama sepa si salió bien.
-  registrarVaciado: async function (idContenedor) {
+  registrarVaciado: async function (idContenedor, idEjecucion) {
     return await confirmarYEjecutar(traducir('q.vaciar'), function () {
-      return ejecutarYAvisar(Api.llamarComoRol('POST', '/contenedor/vaciado', { CONTENEDOR: { ID: idContenedor } }));
+      const datos = { ID: idContenedor };
+      if (idEjecucion !== undefined && idEjecucion !== null) { datos.ID_EJECUCION = idEjecucion; }
+      return ejecutarYAvisar(Api.llamarComoRol('POST', '/contenedor/vaciado', { CONTENEDOR: datos }));
     });
   },
 

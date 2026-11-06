@@ -58,8 +58,18 @@ const Mapas = {
       document.head.append(estilos);
 
       // Evita que el mapa quede por encima de las ventanas (modales) de la aplicación.
+      // También define el aspecto de las etiquetas de los puntos de una ruta:
+      //   .etq-ruta          etiqueta de un contenedor (C1, C2...), borde redondeado
+      //   .etq-ruta.extremo  salida / llegada (centros), borde punteado y cuadrado
+      //   .etq-ruta.actual   la próxima parada en el modo ruta del camionero
       const ajuste = document.createElement('style');
-      ajuste.textContent = '.leaflet-container{z-index:0;font:inherit}';
+      ajuste.textContent =
+        '.leaflet-container{z-index:0;font:inherit}' +
+        '.leaflet-tooltip.etq-ruta{background:#fff;color:#111;border:2px solid #111;border-radius:999px;' +
+        'padding:1px 8px;font-weight:700;font-size:12px;line-height:1.35;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35)}' +
+        '.leaflet-tooltip.etq-ruta:before{display:none}' +
+        '.leaflet-tooltip.etq-ruta.extremo{border-style:dashed;border-radius:3px}' +
+        '.leaflet-tooltip.etq-ruta.actual{background:#e8590c;border-color:#e8590c;color:#fff}';
       document.head.append(ajuste);
 
       const script = document.createElement('script');
@@ -113,5 +123,88 @@ const Mapas = {
       }
     }
     return marcador.addTo(mapa);
+  },
+
+  /*
+    Etiquetas de los puntos de una ruta.
+    Cada parada es un objeto { rol, id, pos, numero }:
+      rol     'salida' (centro de inicio), 'contenedor' o 'llegada' (centro final)
+      id      ID del centro o del contenedor
+      pos     { lat, lng }
+      numero  solo para contenedores: su lugar en la ruta (1, 2, 3...)
+  */
+
+  // Nombre corto del punto: "Salida", "C1", "C2"..., "Llegada".
+  nombreCortoDeParada: function (parada) {
+    if (parada.rol === 'salida') {
+      return traducir('ruta.salida');
+    }
+    if (parada.rol === 'llegada') {
+      return traducir('ruta.llegada');
+    }
+    return traducir('ruta.c') + parada.numero;
+  },
+
+  // Texto completo de la etiqueta: "Salida · Centro #3", "C1 · #12", "Llegada · Centro #5".
+  textoDeParada: function (parada) {
+    if (parada.rol === 'contenedor') {
+      return Mapas.nombreCortoDeParada(parada) + ' · #' + parada.id;
+    }
+    return Mapas.nombreCortoDeParada(parada) + ' · ' + traducir('k.CENTRO') + ' #' + parada.id;
+  },
+
+  // Dibuja una etiqueta fija arriba de cada punto de la ruta.
+  // Si varias paradas caen en el mismo lugar (por ejemplo, la salida y la llegada son el mismo
+  // centro) se juntan en una sola etiqueta: "Salida · Centro #1 / Llegada · Centro #1".
+  // "indiceResaltado" (opcional) es la parada que se pinta como "próxima".
+  // Devuelve la lista de etiquetas, para borrarlas después con .remove().
+  dibujarEtiquetasDeRuta: function (mapa, paradas, indiceResaltado) {
+    const grupos = [];
+    const gruposPorLugar = {};
+
+    for (let i = 0; i < paradas.length; i++) {
+      const parada = paradas[i];
+      const clave = parada.pos.lat.toFixed(6) + ',' + parada.pos.lng.toFixed(6);
+      let grupo = gruposPorLugar[clave];
+      if (!grupo) {
+        grupo = { pos: parada.pos, textos: [], extremo: false, resaltado: false };
+        gruposPorLugar[clave] = grupo;
+        grupos.push(grupo);
+      }
+      grupo.textos.push(Mapas.textoDeParada(parada));
+      if (parada.rol !== 'contenedor') {
+        grupo.extremo = true;
+      }
+      if (i === indiceResaltado) {
+        grupo.resaltado = true;
+      }
+    }
+
+    const etiquetas = [];
+    for (const grupo of grupos) {
+      let clases = 'etq-ruta';
+      if (grupo.extremo) {
+        clases += ' extremo';
+      }
+      if (grupo.resaltado) {
+        clases += ' actual';
+      }
+      // Se usa textContent (no HTML) para que ningún dato del servidor se interprete como código.
+      const contenido = document.createElement('span');
+      contenido.textContent = grupo.textos.join(' / ');
+
+      const etiqueta = L.tooltip({
+        permanent: true,
+        direction: 'top',
+        offset: [0, grupo.resaltado ? -16 : -10],
+        className: clases,
+        interactive: false
+      })
+        .setLatLng([grupo.pos.lat, grupo.pos.lng])
+        .setContent(contenido)
+        .addTo(mapa);
+      etiquetas.push(etiqueta);
+    }
+    return etiquetas;
   }
 };
