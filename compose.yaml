@@ -1,0 +1,119 @@
+services:
+  front:
+    image: nginx:alpine
+    container_name: utu-front
+    ports:
+      - "${FRONT_PORT:-8080}:80"
+    volumes:
+      - ./front:/usr/share/nginx/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - app
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: utu-backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-app_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env}
+      DB_NAME: ${MYSQL_DATABASE:-DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$c=@fsockopen('127.0.0.1',80); exit($$c?0:1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - app
+
+  db:
+    image: mysql:8.4
+    container_name: utu-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-DB}
+      MYSQL_USER: ${MYSQL_USER:-app_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - "./api/base de datos (por ahora).sql:/docker-entrypoint-initdb.d/01-schema.sql:ro"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - app
+
+  database-backup:
+    image: mysql:8.4
+    container_name: utu-backup-database
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-DB}
+      MYSQL_USER: ${MYSQL_USER:-app_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    entrypoint: ["bash", "/scripts/database-backup.sh"]
+    volumes:
+      - ./docker/backup/database-backup.sh:/scripts/database-backup.sh:ro
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app
+
+  project-backup:
+    image: alpine:3.21
+    container_name: utu-backup-project
+    environment:
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    entrypoint: ["/bin/sh", "/scripts/project-backup.sh"]
+    volumes:
+      - ./:/source:ro
+      - ./docker/backup/project-backup.sh:/scripts/project-backup.sh:ro
+      - ./backups:/backups
+    restart: unless-stopped
+
+  backup-check:
+    image: alpine:3.21
+    container_name: utu-backup-check
+    environment:
+      CHECK_INTERVAL_SECONDS: ${CHECK_INTERVAL_SECONDS:-3600}
+    entrypoint: ["/bin/sh", "/scripts/backup-check.sh"]
+    volumes:
+      - ./docker/backup/backup-check.sh:/scripts/backup-check.sh:ro
+      - ./backups:/backups:ro
+    depends_on:
+      - database-backup
+      - project-backup
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  app:
+    driver: bridge
