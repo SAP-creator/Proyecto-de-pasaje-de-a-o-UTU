@@ -30,6 +30,7 @@ Sin argumentos abre el menú interactivo para:
   - instalar/actualizar SiGeRU desde un paquete .tar.gz de imágenes;
   - iniciar, detener, reiniciar, consultar estado y ver logs;
   - crear un administrador de prueba (cédula y contraseña);
+  - aplicar las migraciones SQL pendientes (también se hace al instalar);
   - desinstalar los contenedores, conservando los datos por defecto.
     - usar las opciones avanzadas de Docker desde docker-admin-avanzado.sh.
 
@@ -254,6 +255,87 @@ COMMIT;\n" "$ci" "$hash" "$ci" "$ci" | sql_root \
     ok "Administrador creado con la cédula $ci. Al entrar por primera vez, el sistema pide nombre y apellido."
 }
 
+# Hashea una contraseña con el propio código de la API (mismo PASSWORD_HASH_SECRET
+# que usa el inicio de sesión de ESTA instalación).
+hash_con_api() {
+    local hash
+    hash="$(printf '%s' "$1" | compose_instalado exec -T api-planificador \
+        php -r "require '$SIGN_CONTROLLER'; echo Controller_Sign::hash_password(stream_get_contents(STDIN));" \
+        2>/dev/null | tail -n 1)"
+    [[ "$hash" =~ ^[0-9a-f]{64}$ ]] || { fail "No se pudo calcular el hash con el código de la API."; return 1; }
+    printf '%s' "$hash"
+}
+
+# Devuelve el SQL de una migración con los marcadores {{HASH:clave}} reemplazados
+# por el hash de "clave" en esta instalación. Así una migración puede crear
+# usuarios sin conocer el secreto, que es distinto en cada PC.
+preparar_migracion() {
+    local archivo="$1" sql clave hash marcador
+    sql="$(<"$archivo")"
+    while IFS= read -r clave; do
+        [[ -n "$clave" ]] || continue
+        hash="$(hash_con_api "$clave")" || return 1
+        marcador="{{HASH:$clave}}"
+        sql="${sql//"$marcador"/$hash}"
+    done < <(grep -oE '\{\{HASH:[A-Za-z0-9._-]+\}\}' -- "$archivo" | sed -E 's/^\{\{HASH:(.*)\}\}$/\1/' | sort -u)
+    printf '%s\n' "$sql"
+}
+
+# Aplica, en orden alfabético, los .sql de $INSTALL_DIR/migrations que todavía
+# no se aplicaron. Cada migración aplicada queda registrada en schema_migrations
+# (nombre + checksum), así que correr esto varias veces es seguro: solo ejecuta
+# las nuevas. Se detiene en la primera que falla. Los marcadores {{HASH:clave}}
+# se reemplazan antes de ejecutar (ver preparar_migracion).
+# Ojo: en MySQL los CREATE/ALTER no se pueden deshacer con ROLLBACK; si una
+# migración falla a la mitad, revise la base antes de reintentar.
+aplicar_migraciones() {
+    local dir="$INSTALL_DIR/migrations" archivo nombre suma aplicada sql aplicadas=0
+    if [[ ! -d "$dir" ]] || ! compgen -G "$dir/*.sql" >/dev/null; then
+        info 'No hay migraciones en el paquete; nada que aplicar.'
+        return 0
+    fi
+    esperar_servicios || return 1
+
+    echo 'CREATE TABLE IF NOT EXISTS schema_migrations (
+        nombre VARCHAR(255) NOT NULL PRIMARY KEY,
+        checksum CHAR(64) NOT NULL,
+        aplicada_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );' | sql_root || { fail 'No se pudo crear la tabla schema_migrations.'; return 1; }
+
+    while IFS= read -r archivo; do
+        nombre="$(basename -- "$archivo")"
+        [[ "$nombre" =~ ^[A-Za-z0-9._-]+\.sql$ ]] || { fail "Nombre de migración no permitido: $nombre"; return 1; }
+        suma="$(sha256sum -- "$archivo" | cut -d' ' -f1)"
+        aplicada="$(printf "SELECT checksum FROM schema_migrations WHERE nombre='%s';\n" "$nombre" | sql_root)" \
+            || { fail 'No se pudo consultar schema_migrations.'; return 1; }
+
+        if [[ -n "$aplicada" ]]; then
+            [[ "$aplicada" == "$suma" ]] || info "AVISO: $nombre cambió después de aplicarse; no se vuelve a ejecutar. Cree una migración nueva para el cambio."
+            continue
+        fi
+
+        info "Aplicando migración $nombre..."
+        if grep -q '{{HASH:' -- "$archivo"; then
+            sql="$(preparar_migracion "$archivo")" || { fail "No se pudo preparar la migración $nombre."; return 1; }
+            printf '%s\n' "$sql" | sql_root || { fail "Falló la migración $nombre. No se aplicaron las siguientes."; return 1; }
+        else
+            # Sin marcadores se manda el archivo directo (los de datos pueden pesar decenas de MB).
+            info "($(du -h -- "$archivo" | cut -f1)); puede tardar unos minutos..."
+            sql_root < "$archivo" || { fail "Falló la migración $nombre. No se aplicaron las siguientes."; return 1; }
+        fi
+        printf "INSERT INTO schema_migrations (nombre, checksum) VALUES ('%s', '%s');\n" "$nombre" "$suma" | sql_root \
+            || { fail "Se aplicó $nombre pero no se pudo registrar en schema_migrations."; return 1; }
+        ok "Migración $nombre aplicada."
+        aplicadas=$((aplicadas + 1))
+    done < <(find "$dir" -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort)
+
+    if ((aplicadas == 0)); then
+        ok 'La base ya estaba al día: no había migraciones pendientes.'
+    else
+        ok "Se aplicaron $aplicadas migración(es)."
+    fi
+}
+
 # Después de instalar: si la base no tiene ningún admin sistema, ofrece crear uno.
 ofrecer_admin_prueba() {
     local cantidad respuesta
@@ -405,10 +487,17 @@ instalar_desde_paquete() {
     copiar_si_distinto "$bundle_dir/compose.yaml" "$destination/compose.yaml"
     copiar_si_distinto "$bundle_dir/install.sh" "$destination/install.sh"
     chmod 750 "$destination/install.sh"
+    # La carpeta migrations queda IGUAL a la del paquete: se borran los .sql que
+    # ya no vienen (si no, un archivo viejo de otra versión se volvería a ejecutar).
     if [[ -d "$bundle_dir/migrations" ]]; then
-        mkdir -p "$destination/migrations"
-        [[ "$bundle_dir/migrations" -ef "$destination/migrations" ]] || cp -a "$bundle_dir/migrations/." "$destination/migrations/"
+        if ! [[ "$bundle_dir/migrations" -ef "$destination/migrations" ]]; then
+            rm -rf -- "$destination/migrations"
+            mkdir -p "$destination/migrations"
+            cp -a "$bundle_dir/migrations/." "$destination/migrations/"
+        fi
         chmod 750 "$destination/migrations"
+    else
+        rm -rf -- "$destination/migrations"
     fi
 
     actualizar_env "$env_file" \
@@ -428,6 +517,7 @@ instalar_desde_paquete() {
 
     info 'Iniciando servicios...'
     if compose_instalado up -d --no-build --remove-orphans; then
+        aplicar_migraciones || { fail 'Los servicios arrancaron, pero las migraciones fallaron. Revise el error y reintente con la opción 12.'; return 1; }
         ok "SiGeRU instalado/actualizado en $INSTALL_DIR"
         printf 'Sitio: http://<IP-de-esta-PC>:%s\n' "$port"
         printf 'La base existente y sus datos se conservan al actualizar. Secretos: %s/.env (permisos 600).\n' "$INSTALL_DIR"
@@ -514,6 +604,7 @@ menu_principal() {
   9) Listar imágenes, volúmenes y espacio Docker
  10) Desinstalar contenedores (conservar datos por defecto)
  11) Crear administrador de prueba (cédula y contraseña)
+ 12) Aplicar migraciones pendientes de la base de datos
   0) Salir
 MENU
         read -r -p 'Opción: ' opcion || return 0
@@ -530,6 +621,7 @@ MENU
             9) menu_imagenes_volumenes || true; pause_menu ;;
            10) menu_desinstalar || true; pause_menu ;;
            11) crear_admin_prueba || true; pause_menu ;;
+           12) docker_disponible && aplicar_migraciones || true; pause_menu ;;
             0) return 0 ;;
             *) printf 'Opción no válida.\n';;
         esac

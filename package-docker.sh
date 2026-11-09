@@ -36,10 +36,10 @@ BACKUP_CHECK_IMAGE=$BACKUP_CHECK_IMAGE
 FRONT_PORT=8080
 MYSQL_DATABASE=DB
 MYSQL_USER=app_user
-MYSQL_PASSWORD=build-only-placeholder
-MYSQL_ROOT_PASSWORD=build-only-placeholder
-TOKEN_SIGNING_SECRET=build-only-placeholder
-PASSWORD_HASH_SECRET=build-only-placeholder
+MYSQL_PASSWORD=hola1234
+MYSQL_ROOT_PASSWORD=hola123
+TOKEN_SIGNING_SECRET=auisgdiugalhsd_iaysufdghl
+PASSWORD_HASH_SECRET=w192037tuighakjñ_daksgdiugwo
 ENV
 
 printf '== Descargando imágenes base ==\n'
